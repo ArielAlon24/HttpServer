@@ -3,6 +3,8 @@ from enums.methods import Method
 
 
 class Request:
+    CARRIAGE_RETURN: str = "\r\n"
+
     def __init__(
         self,
         method: Method,
@@ -27,10 +29,10 @@ class Request:
         else:
             full_path = self.path
 
-        request_line = f"{self.method} {full_path} {self.version}\r\n"
-        header_lines = "\r\n".join(
+        request_line = f"{self.method} {full_path} {self.version}{self.CARRIAGE_RETURN}"
+        header_lines = self.CARRIAGE_RETURN.join(
             [f"{key}: {value}" for key, value in (self.headers or {}).items()]
         )
-        payload = f"\r\n\r\n{self.payload}" if self.payload else ""
+        payload = f"{self.CARRIAGE_RETURN * 2}{self.payload}" if self.payload else ""
 
         return f"{request_line}{header_lines}{payload}"

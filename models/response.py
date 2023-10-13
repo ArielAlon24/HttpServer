@@ -1,30 +1,50 @@
 from typing import Dict, Optional
 from enums.status_codes import StatusCode
+from enums.content_types import ContentType
+from enums.header_types import HeaderType
 
 
 class Response:
     VERSION: str = "HTTP/1.1"
+    CARRIAGE_RETURN: str = "\r\n"
 
     def __init__(
         self,
         status_code: StatusCode,
         headers: Optional[Dict[str, str]] = None,
-        content: Optional[str] = None,
+        content: Optional[str | bytes] = None,
+        content_type: ContentType = ContentType.HTML,
+        auto_generated_headers: bool = True,
     ) -> None:
         self.status_code = status_code
-        self.status_message = status_code
-        self.headers = headers
-        self.content = content
+        self.headers = headers or {}
+        if not content:
+            self.content = None
+        elif isinstance(content, str):
+            self.content = content.encode()
+        elif isinstance(content, bytes):
+            self.content = content
+        else:
+            self.content = str(content)
+        self.content_type = content_type
 
-    def __str__(self) -> str:
-        status_line = (
-            f"{self.VERSION} {self.status_code.code} {self.status_code.message}\r\n"
+        if auto_generated_headers:
+            self._generate_headers()
+
+    def _generate_headers(self) -> None:
+        if self.content and HeaderType.CONTENT_LENGTH.value not in self.headers:
+            self.headers[HeaderType.CONTENT_LENGTH.value] = len(self.content)
+
+        if HeaderType.CONTENT_TYPE.value not in self.headers:
+            self.headers[HeaderType.CONTENT_TYPE.value] = self.content_type.value
+
+    def to_bytes(self) -> bytes:
+        status_line = f"{self.VERSION} {self.status_code.code} {self.status_code.message}{self.CARRIAGE_RETURN}"
+        headers = self.CARRIAGE_RETURN.join(
+            [f"{key}: {value}" for key, value in self.headers.items()]
         )
-        header_lines = "\r\n".join(
-            [f"{key}: {value}" for key, value in (self.headers or {}).items()]
-        )
-        return (
-            f"{status_line}{header_lines}\r\n" + f"{self.content}\r\n"
-            if self.content
-            else "\r\n"
-        )
+        headers = f"{status_line}{headers}{self.CARRIAGE_RETURN * 2}".encode()
+
+        if self.content:
+            return headers + self.content + self.CARRIAGE_RETURN.encode()
+        return headers

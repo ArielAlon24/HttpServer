@@ -1,8 +1,12 @@
-from typing import Self, Optional
+from typing import Self, Optional, Callable, Tuple, Dict
 from handlers.logging_handler import LoggingHandler
 from handlers.client_handler import ClientHandler
+from enums.methods import Method
+from enums.content_types import ContentType
+from models.page import Page
 import socket
 from logging import Logger
+import threading
 
 
 class HttpServer:
@@ -18,16 +22,38 @@ class HttpServer:
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((self.IP, self.PORT))
         self.socket.listen(max_clients)
+
+        self.routes: Dict[str, Page] = {}
+
         HttpServer.logger.debug(
             f"Initiated {self.__class__.__name__} on ({self.IP}, {self.PORT}) with {max_clients} max clients."
         )
+
+    def route(
+        self,
+        path: str = "/",
+        method: Method = Method.GET,
+        content_type: ContentType = ContentType.HTML,
+    ) -> Callable[Tuple, str]:
+        def wrapper(function: Callable[Tuple, str]) -> Callable[Tuple, str]:
+            self.routes[path] = Page(function=function, content_type=content_type)
+            HttpServer.logger.debug(
+                f"Added route '{method.name} {path}' with function '{function.__name__}' to routes."
+            )
+
+        return wrapper
 
     def _run(self) -> None:
         while True:
             socket, address = self.socket.accept()
             HttpServer.logger.debug(f"Accepted connection from {address}.")
             client_handler = ClientHandler(socket=socket, address=address)
-            client_handler.handle()
+
+            client_thread = threading.Thread(
+                target=client_handler.handle, args=(self.routes,)
+            )
+
+            client_thread.start()
 
     def run(self) -> None:
         try:

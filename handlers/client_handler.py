@@ -1,11 +1,11 @@
-from typing import Self, Tuple, Optional
+from typing import Self, Tuple, Optional, Dict, Callable
 import socket
 from logging import Logger
 
 from models.response import Response
 from handlers.logging_handler import LoggingHandler
 from utils import parsing_utils
-from enums.status_codes import OK, BAD_REQUEST
+from enums.status_codes import OK, BAD_REQUEST, NOT_FOUND
 
 
 class ClientHandler:
@@ -26,24 +26,6 @@ class ClientHandler:
             f"Initiated {self.__class__.__name__} on {self.address}."
         )
 
-    def handle(self) -> None:
-        try:
-            data = self._receive_request()
-
-            _ = parsing_utils.parse(data)
-            ClientHandler.logger.debug(f"Parsed {self.address} request.")
-            response = Response(status_code=OK, content="<h1>Success!</h1>")
-        except (ValueError, ConnectionError) as error:
-            ClientHandler.logger.warning(
-                f"Encountered an error while parsing {self.address} request."
-            )
-            response = Response(status_code=BAD_REQUEST, content=error)
-        self.logger.debug(f"Created response for {self.address} request.")
-        self.socket.send(str(response).encode())
-        self.logger.debug(f"Sent response for {self.address} request.")
-        self.socket.close()
-        self.logger.debug(f"Closed connection with {self.address}.")
-
     def _receive_request(self) -> str:
         try:
             data = self.socket.recv(1024).decode("utf-8")
@@ -55,5 +37,49 @@ class ClientHandler:
             raise ConnectionError(
                 f"Could not receive data from client at {self.address}."
             )
-        ClientHandler.logger.debug(f"Received a request from {self.address}.")
         return data
+
+    def _generate_response(self, routes: Dict[str, Callable[Tuple, str]]) -> Response:
+        try:
+            raw_request = self._receive_request()
+        except ConnectionError as error:
+            ClientHandler.logger.warning(repr(error))
+            return Response(status_code=BAD_REQUEST, content=repr(error))
+
+        ClientHandler.logger.debug(f"Received {self.address} request.")
+
+        try:
+            request = parsing_utils.parse(raw_request)
+        except ValueError as error:
+            ClientHandler.logger.warning(repr(error))
+            return Response(status_code=BAD_REQUEST, content=repr(error))
+
+        ClientHandler.logger.debug(f"Parsed {self.address} request.")
+
+        try:
+            page = routes[request.path]
+        except KeyError as error:
+            ClientHandler.logger.warning(repr(error))
+            return Response(status_code=NOT_FOUND, content=repr(error))
+        ClientHandler.logger.debug(f"Found {self.address} requested page.")
+
+        try:
+            if request.parameters:
+                content = page.function(**request.parameters)
+            else:
+                content = page.function()
+        except TypeError as error:
+            ClientHandler.logger.warning(repr(error))
+            return Response(status_code=BAD_REQUEST, content=repr(error))
+
+        ClientHandler.logger.debug(f"Created {self.address} requested page.")
+        return Response(status_code=OK, content=content, content_type=page.content_type)
+
+    def handle(self, routes: Dict[str, Callable[Tuple, str]]) -> None:
+        response = self._generate_response(routes=routes)
+
+        self.socket.send(response.to_bytes())
+        self.logger.debug(f"Sent response for {self.address} request.")
+
+        self.socket.close()
+        self.logger.debug(f"Closed connection with {self.address}.")
