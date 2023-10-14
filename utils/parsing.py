@@ -3,6 +3,24 @@ from enums.methods import STRING_TO_METHOD, Method
 from models.request import Request
 
 
+def parse(request: str) -> Request:
+    lines = request.splitlines()
+    if len(lines) == 0:
+        raise ValueError("Encountered empty request")
+    method, path, version = _parse_header(lines[0])
+    path, parameters = _parse_parameters(path)
+    headers, payload_start = _parse_headers(lines)
+    payload = _parse_payload(lines, payload_start)
+    return Request(
+        method=method,
+        path=path,
+        version=version,
+        parameters=parameters if parameters else None,
+        headers=headers if headers else None,
+        payload=payload,
+    )
+
+
 def _parse_header(header: str) -> Tuple[Method, str, str]:
     header_parts = header.split(" ")
     if len(header_parts) != 3:
@@ -58,21 +76,3 @@ def _parse_payload(lines: list, payload_start: int) -> str:
     if payload_start and payload_start < len(lines):
         payload = "\n".join(lines[payload_start:])
     return payload
-
-
-def parse(request: str) -> Request:
-    lines = request.splitlines()
-    if len(lines) == 0:
-        raise ValueError("Encountered empty request")
-    method, path, version = _parse_header(lines[0])
-    path, parameters = _parse_parameters(path)
-    headers, payload_start = _parse_headers(lines)
-    payload = _parse_payload(lines, payload_start)
-    return Request(
-        method=method,
-        path=path,
-        version=version,
-        parameters=parameters if parameters else None,
-        headers=headers if headers else None,
-        payload=payload,
-    )

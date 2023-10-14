@@ -17,22 +17,24 @@ class Request:
         self.method = method
         self.version = version
         self.path = path
-        self.parameters = parameters
-        self.headers = headers
+        self.parameters = parameters if parameters else {}
+        self.headers = headers if headers else {}
         self.payload = payload
 
-    def __str__(self) -> str:
+    def header(self) -> str:
         if self.parameters:
             full_path = f"{self.path}?" + "&".join(
                 [f"{key}={value}" for key, value in self.parameters.items()]
             )
         else:
             full_path = self.path
+        return f"{self.method.name} {full_path} {self.version}"
 
-        request_line = f"{self.method} {full_path} {self.version}{self.CARRIAGE_RETURN}"
-        header_lines = self.CARRIAGE_RETURN.join(
-            [f"{key}: {value}" for key, value in (self.headers or {}).items()]
+    def __str__(self) -> str:
+        header = self.header() + self.CARRIAGE_RETURN
+        headers = self.CARRIAGE_RETURN.join(
+            [f"{key}: {value}" for key, value in (self.headers).items()]
         )
         payload = f"{self.CARRIAGE_RETURN * 2}{self.payload}" if self.payload else ""
 
-        return f"{request_line}{header_lines}{payload}"
+        return f"{header}{headers}{payload}"

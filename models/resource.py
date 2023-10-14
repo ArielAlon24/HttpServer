@@ -4,6 +4,6 @@ from dataclasses import dataclass
 
 
 @dataclass
-class Page:
+class Resource:
     function: Callable[Tuple, str]
     content_type: ContentType
