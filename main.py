@@ -20,5 +20,10 @@ def styles() -> bytes:
     return file.read(path="resources/styles.css")
 
 
+@app.route(path="/script.js", content_type=ContentType.JS)
+def script() -> bytes:
+    return file.read(path="resources/script.js")
+
+
 if __name__ == "__main__":
     app.run()

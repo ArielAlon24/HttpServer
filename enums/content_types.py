@@ -6,3 +6,4 @@ class ContentType(Enum):
     IMAGE: str = "image/jpeg"
     CSS: str = "text/css"
     JS: str = "text/javascript; charset=utf-8"
+    JSON: str = "application/json"

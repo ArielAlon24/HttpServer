@@ -1,7 +1,7 @@
 from typing import Dict, Optional
-from enums.status_codes import StatusCode
-from enums.content_types import ContentType
-from enums.header_types import HeaderType
+from ..enums.status_codes import StatusCode
+from ..enums.content_types import ContentType
+from ..enums.header_types import HeaderType
 
 
 class Response:

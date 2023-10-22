@@ -3,14 +3,14 @@ from typing import Dict
 
 
 class Method(Enum):
-    CONNECT: str = "Connect"
-    DELETE: str = "Delete"
-    GET: str = "Get"
-    HEAD: str = "Head"
-    OPTIONS: str = "Options"
-    POST: str = "Post"
-    PUT: str = "Put"
-    TRACE: str = "Trace"
+    CONNECT: str = "CONNECT"
+    DELETE: str = "DELETE"
+    GET: str = "GET"
+    HEAD: str = "HEAD"
+    OPTIONS: str = "OPTIONS"
+    POST: str = "POST"
+    PUT: str = "PUT"
+    TRACE: str = "TRACE"
 
 
 STRING_TO_METHOD: Dict[str, Method] = {
