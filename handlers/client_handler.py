@@ -3,7 +3,7 @@ import socket
 from logging import Logger
 
 from .logging_handler import LoggingHandler
-from enums.status_codes import OK, BAD_REQUEST, NOT_FOUND, INTERNAL_SERVER_ERROR
+from enums.status_codes import StatusCode
 from models.response import Response
 from models.resource import Resource
 from models.route import Route
@@ -63,21 +63,27 @@ class ClientHandler:
             raw_request = self._receive_request()
         except ConnectionError as error:
             logger.warning(repr(error))
-            return Response(status_code=BAD_REQUEST, content=repr(error).encode())
+            return Response(
+                status_code=StatusCode.bad_request(), content=repr(error).encode()
+            )
         logger.debug(f"Received {self.address} request.")
 
         try:
             request = parsing.parse(raw_request)
         except ValueError as error:
             logger.warning(repr(error))
-            return Response(status_code=BAD_REQUEST, content=repr(error).encode())
+            return Response(
+                status_code=StatusCode.bad_request(), content=repr(error).encode()
+            )
         logger.debug(f"Parsed {self.address} request: {request.header()}")
 
         try:
             resource = self.routes[Route(method=request.method, path=request.path)]
         except KeyError as error:
             logger.warning(repr(error))
-            return Response(status_code=NOT_FOUND, content=repr(error).encode())
+            return Response(
+                status_code=StatusCode.not_found(), content=repr(error).encode()
+            )
         logger.debug(f"Found {self.address} requested resource.")
 
         try:
@@ -91,7 +97,9 @@ class ClientHandler:
             content = resource.function(**kwargs)
         except TypeError as error:
             logger.warning(repr(error))
-            return Response(status_code=BAD_REQUEST, content=repr(error).encode())
+            return Response(
+                status_code=StatusCode.bad_request(), content=repr(error).encode()
+            )
         logger.debug(
             f"{self.address} request matched function ({resource.function.__name__}) arguments."
         )
@@ -99,18 +107,21 @@ class ClientHandler:
         try:
             if isinstance(content, str):
                 return Response(
-                    status_code=OK,
+                    status_code=StatusCode.ok(),
                     content=content.encode(),
                     content_type=resource.content_type,
                 )
             elif isinstance(content, bytes):
                 return Response(
-                    status_code=OK, content=content, content_type=resource.content_type
+                    status_code=StatusCode.ok(),
+                    content=content,
+                    content_type=resource.content_type,
                 )
             else:
                 raise ValueError("Resource functions must return 'str' or 'bytes'.")
         except ValueError as error:
             logger.warning(repr(error))
             return Response(
-                status_code=INTERNAL_SERVER_ERROR, content=repr(error).encode()
+                status_code=StatusCode.internal_server_error(),
+                content=repr(error).encode(),
             )
