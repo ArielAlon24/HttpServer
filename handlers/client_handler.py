@@ -1,13 +1,13 @@
-from typing import Self, Tuple, Dict
+from typing import Self, Tuple, Dict, Any
 import socket
 from logging import Logger
 
 from .logging_handler import LoggingHandler
-from ..enums.status_codes import OK, BAD_REQUEST, NOT_FOUND, INTERNAL_SERVER_ERROR
-from ..models.response import Response
-from ..models.resource import Resource
-from ..models.route import Route
-from ..utils import parsing
+from enums.status_codes import OK, BAD_REQUEST, NOT_FOUND, INTERNAL_SERVER_ERROR
+from models.response import Response
+from models.resource import Resource
+from models.route import Route
+from utils import parsing
 
 logger: Logger = LoggingHandler.create_logger(__name__)
 
@@ -33,7 +33,7 @@ class ClientHandler:
         except Exception as e:
             logger.error(repr(e))
         finally:
-            self.close()
+            self._close()
 
     def _close(self) -> None:
         self.socket.close()
@@ -81,16 +81,20 @@ class ClientHandler:
         logger.debug(f"Found {self.address} requested resource.")
 
         try:
-            if resource.include_payload:
-                content = resource.function(
-                    **request.parameters, payload=request.payload
-                )
-            else:
-                content = resource.function(**request.parameters)
+            kwargs: Dict[str, Any] = request.parameters
+            function_arguments = resource.function.__annotations__
+            if request.PAYLOAD_KEY in function_arguments:
+                kwargs[request.PAYLOAD_KEY] = request.payload
+            if request.HEADERS_KEY in function_arguments:
+                kwargs[request.HEADERS_KEY] = request.headers
+
+            content = resource.function(**kwargs)
         except TypeError as error:
             logger.warning(repr(error))
             return Response(status_code=BAD_REQUEST, content=repr(error).encode())
-        logger.debug(f"{self.address} request parameters matched.")
+        logger.debug(
+            f"{self.address} request matched function ({resource.function.__name__}) arguments."
+        )
 
         try:
             if isinstance(content, str):

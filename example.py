@@ -2,6 +2,9 @@ from http_server import HttpServer
 from enums.content_types import ContentType
 from utils import file
 
+
+from typing import Dict
+
 app = HttpServer()
 
 
@@ -11,18 +14,15 @@ def favicon() -> bytes:
 
 
 @app.route(path="/", content_type=ContentType.HTML)
-def index() -> bytes:
-    return file.read(path="resources/index.html")
+def index(payload: str, headers: Dict[str, str]) -> bytes:
+    return file.template(
+        path="resources/index.html", payload=payload, headers=repr(headers)
+    )
 
 
 @app.route(path="/styles.css", content_type=ContentType.CSS)
 def styles() -> bytes:
     return file.read(path="resources/styles.css")
-
-
-@app.route(path="/script.js", content_type=ContentType.JS)
-def script() -> bytes:
-    return file.read(path="resources/script.js")
 
 
 if __name__ == "__main__":

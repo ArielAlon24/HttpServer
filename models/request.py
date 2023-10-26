@@ -1,9 +1,11 @@
 from typing import Dict, Optional, Self
-from ..enums.methods import Method
+from enums.methods import Method
 
 
 class Request:
     CARRIAGE_RETURN: str = "\r\n"
+    PAYLOAD_KEY: str = "payload"
+    HEADERS_KEY: str = "headers"
 
     def __init__(
         self,

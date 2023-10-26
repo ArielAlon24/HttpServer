@@ -1,9 +1,9 @@
-from .handlers.logging_handler import LoggingHandler
-from .handlers.client_handler import ClientHandler
-from .enums.methods import Method
-from .enums.content_types import ContentType
-from .models.resource import Resource
-from .models.route import Route
+from handlers.logging_handler import LoggingHandler
+from handlers.client_handler import ClientHandler
+from enums.methods import Method
+from enums.content_types import ContentType
+from models.resource import Resource
+from models.route import Route
 
 from typing import Self, Callable, Tuple, Dict
 from logging import Logger
@@ -36,13 +36,11 @@ class HttpServer:
         method: Method = Method.GET,
         path: str = "/",
         content_type: ContentType = ContentType.HTML,
-        include_payload: bool = False,
     ) -> Callable[Tuple, str]:
         def wrapper(function: Callable[Tuple, str]) -> None:
             self.routes[Route(method=method, path=path)] = Resource(
                 function=function,
                 content_type=content_type,
-                include_payload=include_payload,
             )
             logger.debug(
                 f"Added route '{method.name} {path}' to function '{function.__name__}' with {content_type.name} content type."

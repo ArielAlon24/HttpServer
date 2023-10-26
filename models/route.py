@@ -1,5 +1,5 @@
 from typing import Self
-from ..enums.methods import Method
+from enums.methods import Method
 
 
 class Route:
