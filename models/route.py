@@ -14,3 +14,6 @@ class Route:
         if not isinstance(other, Route):
             return False
         return self.method == other.method and self.path == other.path
+
+    def __repr__(self) -> str:
+        return f"'{self.method.value} {self.path}'"

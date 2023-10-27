@@ -2,7 +2,6 @@ from http_server import HttpServer
 from enums.content_types import ContentType
 from utils import file
 
-
 from typing import Dict
 
 app = HttpServer()
@@ -23,6 +22,11 @@ def index(payload: str, headers: Dict[str, str]) -> bytes:
 @app.route(path="/styles.css", content_type=ContentType.CSS)
 def styles() -> bytes:
     return file.read(path="resources/styles.css")
+
+
+@app.route(path="/add", content_type=ContentType.HTML)
+def add(a: str, b: str) -> str:
+    return f"<h1> Result = {int(a) + int(b)} </h1>"
 
 
 if __name__ == "__main__":

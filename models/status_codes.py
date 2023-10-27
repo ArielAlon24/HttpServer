@@ -1,11 +1,10 @@
-from dataclasses import dataclass
 from typing import Self
 
 
-@dataclass
 class StatusCode:
-    code: int
-    message: str
+    def __init__(self, code: int, message: str) -> None:
+        self.code = code
+        self.message = message
 
     @classmethod
     def ok(cls) -> Self:
@@ -22,3 +21,6 @@ class StatusCode:
     @classmethod
     def internal_server_error(cls) -> Self:
         return StatusCode(code=500, message="Internal Server Error")
+
+    def __repr__(self) -> str:
+        return f"{self.code} {self.message}"

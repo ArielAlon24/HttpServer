@@ -26,6 +26,7 @@ class HttpServer:
         self.socket.listen(max_clients)
 
         self.routes: Dict[Route, Resource] = {}
+        self.error_routes: Dict[Route, Resource] = {}
 
         logger.debug(
             f"Initiated {self.__class__.__name__} on ({ip}, {port}) with {max_clients} max clients."
