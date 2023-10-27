@@ -1,43 +1,33 @@
-# HTTP Server Library
+# HttpServer
 
-A simple HTTP server library for Python, designed to make it easy to create web applications and serve HTTP requests. This library allows you to define routes and handlers for different HTTP endpoints, making it a useful tool for building RESTful APIs, serving web pages, or handling various HTTP requests.
-
-## Table of Contents
-
-- [Usage](#usage)
-  - [Defining Routes](#defining-routes)
-  - [Injecting Parameters and Headers](#injecting-parameters-and-headers)
-  - [Using Templates with `[variable]` Markup](#using-templates-with-variable-markup)
-  - [Accessing Parameters as Arguments](#accessing-parameters-as-arguments)
-- [License](#license)
+A simple HTTP server library for Python.
 
 ## Usage
 ### Defining Routes
 To use the HTTP server library, follow these steps:
 
-Import the necessary modules:
+1. Import the necessary modules:
 
 ```python
 from http_server import HttpServer
 from enums.content_types import ContentType
 from utils import file
 ```
-Create an instance of the HttpServer class:
+2. Create an instance of the HttpServer class:
 
 ```python
 app = HttpServer()
 ```
 
-Define routes using the @app.route decorator and specify the content type for each route:
+3. Define routes using the `@app.route` decorator and specify the content type for each route:
 
 ```python
 @app.route(path="/favicon.ico", content_type=ContentType.IMAGE)
 def favicon() -> bytes:
-    # Define the response logic for this route
     return file.read(path="resources/favicon.ico")
 ```
 
-Start the HTTP server using the `app.run()` method:
+4. Start the HTTP server using the `app.run()` method:
 
 ```python
 if __name__ == "__main__":
@@ -50,17 +40,15 @@ You can inject the payload or the headers (or both) into the handler function by
 ```python
 @app.route(path="/", content_type=ContentType.HTML)
 def index(payload: str, headers: Dict[str, str]) -> bytes:
-    # Use payload and headers in your response logic
-    response_content = f"Payload: {payload}<br>Headers: {headers}"
     return file.template(
-        path="resources/index.html", payload=response_content
+        path="resources/index.html", payload=payload, headers=repr(headers)
     )
 ```
 
 The `index` function will receive on runtime both the request's payload and headers.
 
 ### Using Templates with [variable] Markup
-As we saw in the previous example, you can use templates with placeholders like `[variable]` by creating an HTML template file with placeholders. They will be replaced with actual key-word arguments passed in the `file.template`.
+As we saw in the previous example, you can use templates with placeholders like `[variable]` by creating an HTML template file with placeholders. They will be replaced with key-word arguments passed in the `file.template` function.
 
 ```html
 <!DOCTYPE html>
@@ -75,7 +63,7 @@ As we saw in the previous example, you can use templates with placeholders like 
 </body>
 </html>
 ```
-### Accessing Request's Parameters
+### Accessing Request Parameters
 To access parameters sent in the request, simply define function arguments with the same names as the parameters in the URL. For example:
 
 ```python
@@ -84,7 +72,8 @@ def add(a: str, b: str) -> str:
     result = int(a) + int(b)
     return f"<h1> Result = {result} </h1>"
 ```
-This function will accept URL of the type: `www.example.com/add?a=<a>&b=<b>`. Note that the parameters passed in must be strings.
+This function will accept URLs of the type: `www.example.com/add?a=<a>&b=<b>`. 
+- **Note** that the parameters passed in must be strings.
 
 ## License
-This HTTP server library is open-source and available under the MIT License.
+This HttpServer library is open-source and available under the MIT License.
