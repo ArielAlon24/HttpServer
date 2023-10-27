@@ -1,6 +1,7 @@
+from ..enums.methods import STRING_TO_METHOD, Method
+from ..models.request import Request
+
 from typing import Dict, List, Tuple
-from enums.methods import STRING_TO_METHOD, Method
-from models.request import Request
 
 
 def parse(request: str) -> Request:

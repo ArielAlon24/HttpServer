@@ -1,10 +1,10 @@
-from typing import Dict, Optional, Self
-from models.status_codes import StatusCode
-from enums.content_types import ContentType
-from enums.header_types import HeaderType
-from utils import html
-from utils import file
+from .status_codes import StatusCode
+from ..enums.content_types import ContentType
+from ..enums.header_types import HeaderType
+from ..utils import html
+from ..utils import file
 
+from typing import Dict, Optional, Self
 import traceback
 
 

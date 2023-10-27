@@ -1,9 +1,9 @@
-from handlers.logging_handler import LoggingHandler
-from handlers.client_handler import ClientHandler
-from enums.methods import Method
-from enums.content_types import ContentType
-from models.resource import Resource
-from models.route import Route
+from .handlers.logging_handler import LoggingHandler
+from .handlers.client_handler import ClientHandler
+from .enums.methods import Method
+from .enums.content_types import ContentType
+from .models.resource import Resource
+from .models.route import Route
 
 from typing import Self, Callable, Tuple, Dict
 from logging import Logger
@@ -13,7 +13,7 @@ import socket
 logger: Logger = LoggingHandler.create_logger(__name__)
 
 
-class HttpServer:
+class Server:
     def __init__(
         self,
         ip: str = "0.0.0.0",

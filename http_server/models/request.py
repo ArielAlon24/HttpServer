@@ -1,5 +1,6 @@
+from ..enums.methods import Method
+
 from typing import Dict, Optional, Self
-from enums.methods import Method
 
 
 class Request:

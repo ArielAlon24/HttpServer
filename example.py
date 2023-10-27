@@ -1,10 +1,10 @@
-from http_server import HttpServer
-from enums.content_types import ContentType
-from utils import file
+from http_server.server import Server
+from http_server.enums.content_types import ContentType
+from http_server.utils import file
 
 from typing import Dict
 
-app = HttpServer()
+app = Server()
 
 
 @app.route(path="/favicon.ico", content_type=ContentType.IMAGE)

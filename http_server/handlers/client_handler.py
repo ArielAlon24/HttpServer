@@ -1,13 +1,14 @@
+from .logging_handler import LoggingHandler
+from ..models.status_codes import StatusCode
+from ..models.response import Response
+from ..models.resource import Resource
+from ..models.route import Route
+from ..utils import http
+
 from typing import Self, Tuple, Dict, Any
 import socket
 from logging import Logger
 
-from .logging_handler import LoggingHandler
-from models.status_codes import StatusCode
-from models.response import Response
-from models.resource import Resource
-from models.route import Route
-from utils import http
 
 logger: Logger = LoggingHandler.create_logger(__name__)
 

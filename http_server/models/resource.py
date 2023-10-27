@@ -1,5 +1,6 @@
+from ..enums.content_types import ContentType
+
 from typing import Callable, Tuple
-from enums.content_types import ContentType
 
 
 class Resource:
