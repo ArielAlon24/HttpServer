@@ -26,7 +26,8 @@ def styles() -> bytes:
 
 @app.route(path="/add", content_type=ContentType.HTML)
 def add(a: str, b: str) -> str:
-    return f"<h1> Result = {int(a) + int(b)} </h1>"
+    result = int(a) + int(b)
+    return f"<h1> Result = {result} </h1>"
 
 
 if __name__ == "__main__":
