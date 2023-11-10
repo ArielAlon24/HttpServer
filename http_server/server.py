@@ -1,6 +1,7 @@
 """
 Name: Ariel Alon
-Description: This module defines the 'Server' class and all related methods.
+Description:
+    This module defines the 'Server' class and all related methods.
 """
 
 from .handlers.logging_handler import LoggingHandler

@@ -1,6 +1,7 @@
 """
 Name: Ariel Alon
-Description: This module defines the 'Route' class and related methods.
+Description:
+    This module defines the 'Route' class and related methods.
 """
 from ..enums.methods import Method
 

@@ -1,6 +1,7 @@
 """
 Name: Ariel Alon
-Description: This module defines the 'Response' class and related methods.
+Description:
+    This module defines the 'Response' class and related methods.
 """
 
 from .status_codes import StatusCode

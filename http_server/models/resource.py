@@ -1,6 +1,7 @@
 """
 Name: Ariel Alon
-Description: This module defines the 'Resource' class.
+Description:
+    This module defines the 'Resource' class.
 """
 
 from ..enums.content_types import ContentType

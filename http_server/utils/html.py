@@ -1,6 +1,7 @@
 """
 Name: Ariel Alon
-Description: This module has html related utility functions.
+Description:
+    This module has html related utility functions.
 """
 
 

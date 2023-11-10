@@ -1,6 +1,7 @@
 """
 Name: Ariel Alon
-Description: This module has utility functions for parsing HTTP requests.
+Description:
+    This module has utility functions for parsing HTTP requests.
 """
 
 from ..enums.methods import STRING_TO_METHOD, Method

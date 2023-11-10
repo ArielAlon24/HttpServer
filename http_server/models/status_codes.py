@@ -1,6 +1,7 @@
 """
 Name: Ariel Alon
-Description: This module defines the 'StatusCode' class and related methods.
+Description:
+    This module defines the 'StatusCode' class and related methods.
 """
 from typing import Self
 

@@ -1,6 +1,7 @@
 """
 Name: Ariel Alon
-Description: This module has file related utility functions.
+Description:
+    This module has file related utility functions.
 """
 
 import os
