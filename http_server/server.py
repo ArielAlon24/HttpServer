@@ -54,8 +54,8 @@ class Server:
         self.error_routes: Dict[Route, Resource] = {}
 
         logger.debug(
-            f"Initiated {self.__class__.__name__} on ({ip}, {port})\
-             with {max_clients} max clients."
+            f"Initiated {self.__class__.__name__} on ({ip}, {port}) "
+            + f"with {max_clients} max clients."
         )
 
     def route(
@@ -84,16 +84,41 @@ class Server:
             Parameters:
                 function (Callable[Tuple, str]): The decorated function.
             """
-            self.routes[Route(method=method, path=path)] = Resource(
+            self.add_route(
                 function=function,
+                method=method,
+                path=path,
                 content_type=content_type,
-            )
-            logger.debug(
-                f"Added route '{method.name} {path}' to function\
-                 '{function.__name__}' with {content_type.name} content type."
             )
 
         return wrapper
+
+    def add_route(
+        self,
+        function: Callable[Tuple, str],
+        method: Method = Method.GET,
+        path: str = "/",
+        content_type: ContentType = ContentType.HTML,
+    ) -> None:
+        """
+        Add a route to the to the server.
+
+        Parameters:
+            function (Callable[Tuple, str]):
+                Resource creating function.
+            method (Method): The method type of the request.
+            path (str): A string path for the route to be added.
+            content_type (ContentType):
+                The content type of the resource of the route.
+        """
+        self.routes[Route(method=method, path=path)] = Resource(
+            function=function,
+            content_type=content_type,
+        )
+        logger.debug(
+            f"Added route '{method.name} {path}' to function "
+            + f"'{function.__name__}' with {content_type.name} content type."
+        )
 
     def _run(self, max_workers: int) -> None:
         """

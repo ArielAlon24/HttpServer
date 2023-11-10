@@ -166,7 +166,12 @@ class ClientHandler:
 
         # Encoding if needed.
         try:
-            if isinstance(content, str):
+            if not content:
+                return Response(
+                    status_code=StatusCode.ok(),
+                    content_type=resource.content_type,
+                )
+            elif isinstance(content, str):
                 return Response(
                     status_code=StatusCode.ok(),
                     content=content.encode(),
@@ -180,7 +185,7 @@ class ClientHandler:
                 )
             else:
                 raise ValueError(
-                    "Resource functions must return 'str' or 'bytes'."
+                    "Resource functions must return 'str', 'bytes' or 'None'."
                 )
         except ValueError as error:
             logger.warning(repr(error))
