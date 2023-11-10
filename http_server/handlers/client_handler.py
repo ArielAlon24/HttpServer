@@ -160,8 +160,8 @@ class ClientHandler:
                 status_code=StatusCode.bad_request(), error=error
             )
         logger.debug(
-            f"{self.address} request matched function (\
-            {resource.function.__name__}) arguments."
+            f"{self.address} request matched function ("
+            + f"{resource.function.__name__}) arguments."
         )
 
         # Encoding if needed.
