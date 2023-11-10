@@ -1,8 +1,19 @@
+"""
+Name: Ariel Alon
+Description:
+    This module contains an enum and a string mapping for HTTP methods.
+"""
+
+
 from enum import Enum
 from typing import Dict
 
 
 class Method(Enum):
+    """
+    An HTTP method enum.
+    """
+
     CONNECT: str = "CONNECT"
     DELETE: str = "DELETE"
     GET: str = "GET"
@@ -13,6 +24,7 @@ class Method(Enum):
     TRACE: str = "TRACE"
 
 
+# str to Method mapping
 STRING_TO_METHOD: Dict[str, Method] = {
     "CONNECT": Method.CONNECT,
     "DELETE": Method.DELETE,
