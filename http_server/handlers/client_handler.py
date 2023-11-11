@@ -134,9 +134,7 @@ class ClientHandler:
 
         # Finding correct resource
         try:
-            resource = self.routes[
-                Route(method=request.method, path=request.path)
-            ]
+            resource = self.routes[Route(method=request.method, path=request.path)]
         except KeyError as error:
             logger.warning(repr(error))
             return Response.create_error(

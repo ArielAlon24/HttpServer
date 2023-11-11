@@ -11,7 +11,7 @@ from .enums.content_types import ContentType
 from .models.resource import Resource
 from .models.route import Route
 
-from typing import Self, Callable, Tuple, Dict
+from typing import Callable, Tuple, Dict
 from logging import Logger
 from concurrent.futures import ThreadPoolExecutor
 import socket
@@ -35,7 +35,7 @@ class Server:
         ip: str = "0.0.0.0",
         port: int = 80,
         max_clients: int = 10,
-    ) -> Self:
+    ) -> None:
         """
         Initialize an instance of a Server class at (IP, port).
 
@@ -63,7 +63,7 @@ class Server:
         method: Method = Method.GET,
         path: str = "/",
         content_type: ContentType = ContentType.HTML,
-    ) -> Callable[Tuple, str]:
+    ) -> Callable[..., None]:
         """
         A decorator for adding a route to the to the server.
 
@@ -74,10 +74,10 @@ class Server:
                 The content type of the resource of the route.
 
         Returns:
-            Callable[Tuple, str]: a function that returns a str.
+            Callable[..., None]: The wrapper.
         """
 
-        def wrapper(function: Callable[Tuple, str]) -> None:
+        def wrapper(function: Callable[..., str | bytes]) -> None:
             """
             The inner function of the decorator.
 
@@ -95,7 +95,7 @@ class Server:
 
     def add_route(
         self,
-        function: Callable[Tuple, str],
+        function: Callable[..., str | bytes],
         method: Method = Method.GET,
         path: str = "/",
         content_type: ContentType = ContentType.HTML,

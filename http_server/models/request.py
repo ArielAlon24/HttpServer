@@ -87,8 +87,6 @@ class Request:
         headers = self.CARRIAGE_RETURN.join(
             [f"{key}: {value}" for key, value in (self.headers).items()]
         )
-        payload = (
-            f"{self.CARRIAGE_RETURN * 2}{self.payload}" if self.payload else ""
-        )
+        payload = f"{self.CARRIAGE_RETURN * 2}{self.payload}" if self.payload else ""
 
         return f"{header}{headers}{payload}"

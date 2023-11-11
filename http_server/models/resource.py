@@ -19,7 +19,7 @@ class Resource:
     """
 
     def __init__(
-        self, function: Callable[Tuple, str], content_type: ContentType
+        self, function: Callable[..., str | bytes], content_type: ContentType
     ) -> None:
         """
         Initialize a resource.
