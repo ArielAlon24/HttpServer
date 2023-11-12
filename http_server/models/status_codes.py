@@ -3,7 +3,7 @@ Name: Ariel Alon
 Description:
     This module defines the 'StatusCode' class and related methods.
 """
-from typing import Self
+from __future__ import annotations
 
 
 class StatusCode:
@@ -27,7 +27,7 @@ class StatusCode:
         self.message = message
 
     @classmethod
-    def ok(cls) -> Self:
+    def ok(cls) -> StatusCode:
         """
         Create an OK status code.
 
@@ -37,7 +37,7 @@ class StatusCode:
         return StatusCode(code=200, message="OK")
 
     @classmethod
-    def bad_request(cls) -> Self:
+    def bad_request(cls) -> StatusCode:
         """
         Create an OK status code.
 
@@ -47,7 +47,7 @@ class StatusCode:
         return StatusCode(code=400, message="Bad Request")
 
     @classmethod
-    def not_found(cls) -> Self:
+    def not_found(cls) -> StatusCode:
         """
         Create an NotFound status code.
 
@@ -57,7 +57,7 @@ class StatusCode:
         return StatusCode(code=404, message="Not Found")
 
     @classmethod
-    def internal_server_error(cls) -> Self:
+    def internal_server_error(cls) -> StatusCode:
         """
         Create an InternalServerError status code.
 

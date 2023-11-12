@@ -3,6 +3,7 @@ Name: Ariel Alon
 Description:
     This module defines the 'Response' class and related methods.
 """
+from __future__ import annotations
 
 from .status_codes import StatusCode
 from ..enums.content_types import ContentType
@@ -62,7 +63,7 @@ class Response:
             self._generate_headers()
 
     @classmethod
-    def create_error(cls, status_code: StatusCode, error: Exception) -> Self:
+    def create_error(cls, status_code: StatusCode, error: Exception) -> Response:
         """
         Initialize an error Response, this response if for developing purposes
         and adds the traceback of the exception to the response's payload.
@@ -92,16 +93,11 @@ class Response:
         """
         Generate headers for a response.
         """
-        if (
-            self.content
-            and HeaderType.CONTENT_LENGTH.value not in self.headers
-        ):
-            self.headers[HeaderType.CONTENT_LENGTH.value] = len(self.content)
+        if self.content and HeaderType.CONTENT_LENGTH.value not in self.headers:
+            self.headers[HeaderType.CONTENT_LENGTH.value] = str(len(self.content))
 
         if HeaderType.CONTENT_TYPE.value not in self.headers:
-            self.headers[
-                HeaderType.CONTENT_TYPE.value
-            ] = self.content_type.value
+            self.headers[HeaderType.CONTENT_TYPE.value] = self.content_type.value
 
     def to_bytes(self) -> bytes:
         """
@@ -121,10 +117,5 @@ class Response:
         ).encode()
 
         if self.content:
-            return (
-                status_line
-                + headers
-                + self.content
-                + self.CARRIAGE_RETURN.encode()
-            )
+            return status_line + headers + self.content + self.CARRIAGE_RETURN.encode()
         return status_line + headers

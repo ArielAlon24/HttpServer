@@ -77,12 +77,12 @@ class Server:
             Callable[..., None]: The wrapper.
         """
 
-        def wrapper(function: Callable[..., str | bytes]) -> None:
+        def wrapper(function: Callable[..., str | bytes | None]) -> None:
             """
             The inner function of the decorator.
 
             Parameters:
-                function (Callable[Tuple, str]): The decorated function.
+                function (Callable[..., str | bytes | None]): The decorated function.
             """
             self.add_route(
                 function=function,
@@ -95,7 +95,7 @@ class Server:
 
     def add_route(
         self,
-        function: Callable[..., str | bytes],
+        function: Callable[..., str | bytes | None],
         method: Method = Method.GET,
         path: str = "/",
         content_type: ContentType = ContentType.HTML,
@@ -104,7 +104,7 @@ class Server:
         Add a route to the to the server.
 
         Parameters:
-            function (Callable[Tuple, str]):
+            function (Callable[..., str | bytes | None]):
                 Resource creating function.
             method (Method): The method type of the request.
             path (str): A string path for the route to be added.
