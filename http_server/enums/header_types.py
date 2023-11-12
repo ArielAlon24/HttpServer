@@ -13,5 +13,5 @@ class HeaderType(Enum):
     An header type enum.
     """
 
-    CONTENT_TYPE: str = "Content-Type"
-    CONTENT_LENGTH: str = "Content-Length"
+    CONTENT_TYPE = "Content-Type"
+    CONTENT_LENGTH = "Content-Length"

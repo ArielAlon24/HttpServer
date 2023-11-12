@@ -12,8 +12,8 @@ class ContentType(Enum):
     A content type enum.
     """
 
-    HTML: str = "text/html; charset=utf-8"
-    IMAGE: str = "image/jpeg"
-    CSS: str = "text/css"
-    JS: str = "text/javascript; charset=utf-8"
-    JSON: str = "application/json"
+    HTML = "text/html; charset=utf-8"
+    IMAGE = "image/jpeg"
+    CSS = "text/css"
+    JS = "text/javascript; charset=utf-8"
+    JSON = "application/json"

@@ -14,14 +14,14 @@ class Method(Enum):
     An HTTP method enum.
     """
 
-    CONNECT: str = "CONNECT"
-    DELETE: str = "DELETE"
-    GET: str = "GET"
-    HEAD: str = "HEAD"
-    OPTIONS: str = "OPTIONS"
-    POST: str = "POST"
-    PUT: str = "PUT"
-    TRACE: str = "TRACE"
+    CONNECT = "CONNECT"
+    DELETE = "DELETE"
+    GET = "GET"
+    HEAD = "HEAD"
+    OPTIONS = "OPTIONS"
+    POST = "POST"
+    PUT = "PUT"
+    TRACE = "TRACE"
 
 
 # str to Method mapping
