@@ -63,7 +63,7 @@ class Response:
             self._generate_headers()
 
     @classmethod
-    def create_error(cls, status_code: StatusCode, error: Exception) -> Response:
+    def from_error(cls, status_code: StatusCode, error: Exception) -> Response:
         """
         Initialize an error Response, this response if for developing purposes
         and adds the traceback of the exception to the response's payload.

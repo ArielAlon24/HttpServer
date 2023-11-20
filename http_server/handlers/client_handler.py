@@ -5,8 +5,10 @@ Description:
     each connected client.
 """
 
+from http_server.models.request import Request
 from .logging_handler import LoggingHandler
 from ..models.status_codes import StatusCode
+from ..models.http_error import HttpError
 from ..models.response import Response
 from ..models.resource import Resource
 from ..models.route import Route
@@ -82,9 +84,44 @@ class ClientHandler:
         self.socket.send(response.to_bytes())
         logger.debug(f"Sent response for {self.address} request.")
 
-    def _receive_request(self, size: int = 4096) -> str:
+    def _generate_response(self) -> Response:
         """
-        A private function for receiving the request from the client.
+        Generating the resposne to the request sent from the client.
+
+        Returns:
+            response (Response): Generated response.
+        """
+        try:
+            raw_request = self._receive_raw_request()
+            logger.debug(f"Received {self.address} request.")
+
+            request = self._parse_request(raw_request)
+            logger.debug(f"Parsed {self.address} request: {request.header()}")
+
+            resource = self._find_resource(request)
+            logger.debug(f"Found {self.address} requested resource.")
+
+            content = self._execute_resource(resource=resource, request=request)
+            logger.debug(
+                f"{self.address} request matched function ("
+                + f"{resource.function.__name__}) arguments."
+            )
+
+            response = self._content_to_response(resource=resource, content=content)
+            logger.debug(f"Response for {self.address} created.")
+        except HttpError as error:
+            logger.warning(repr(error))
+            return Response.from_error(status_code=error.status_code, error=error)
+        except Exception as error:
+            logger.error(repr(error))
+            return Response.from_error(
+                status_code=StatusCode.internal_server_error(), error=error
+            )
+        return response
+
+    def _receive_raw_request(self, size: int = 4096) -> str:
+        """
+        A private method for receiving the request from the client.
 
         Parameters:
             size (int): The size in bytes of the received data.
@@ -93,100 +130,119 @@ class ClientHandler:
             received data (str): The request of the client as a string.
         """
         try:
-            data = self.socket.recv(size).decode("utf-8")
-        except socket.error:
-            raise ConnectionError(
-                f"Could not receive data from client at {self.address}."
+            raw_request = self.socket.recv(size).decode("utf-8")
+        except socket.error as error:
+            raise HttpError(
+                message=f"Could not receive data from client at {self.address}.",
+                status_code=StatusCode.bad_request(),
             )
-        if not data:
-            raise ConnectionError(
-                f"Could not receive data from client at {self.address}."
+        if not raw_request:
+            raise HttpError(
+                message=f"No data received from client at {self.address}.",
+                status_code=StatusCode.bad_request(),
             )
-        return data
 
-    def _generate_response(self) -> Response:
+        return raw_request
+
+    def _parse_request(self, raw_request: str) -> Request:
         """
-        Private generate response.
+        A private method for parsing a raw request.
+
+        Parameters:
+            raw_request (str): Raw request string.
 
         Returns:
-            response (Response): The response generated.
+            request (Request): Parsed Reuqest.
         """
-
-        # Receiving raw request
-        try:
-            raw_request = self._receive_request()
-        except ConnectionError as error:
-            logger.warning(repr(error))
-            return Response.create_error(
-                status_code=StatusCode.bad_request(), error=error
-            )
-        logger.debug(f"Received {self.address} request.")
-
-        # Parsing request string
         try:
             request = http.parse(raw_request)
         except ValueError as error:
-            logger.warning(repr(error))
-            return Response.create_error(
-                status_code=StatusCode.bad_request(), error=error
+            raise HttpError(
+                message=f"Could not parse {self.address} request.",
+                status_code=StatusCode.bad_request(),
             )
-        logger.debug(f"Parsed {self.address} request: {request.header()}")
+        return request
 
-        # Finding correct resource
+    def _find_resource(self, request: Request) -> Resource:
+        """
+        A private method for finding a resource based on a request.
+
+        Parmeters:
+            request (Request): Request instance.
+
+        Returns:
+            resource (Resource): Request's resource.
+        """
         try:
             resource = self.routes[Route(method=request.method, path=request.path)]
         except KeyError as error:
-            logger.warning(repr(error))
-            return Response.create_error(
-                status_code=StatusCode.not_found(), error=error
+            raise HttpError(
+                message=f"Could not find {self.address} request's resource.",
+                status_code=StatusCode.not_found(),
             )
-        logger.debug(f"Found {self.address} requested resource.")
+        return resource
 
-        # Injecting correct arguments and running the creating function.
+    def _execute_resource(
+        self, resource: Resource, request: Request
+    ) -> str | bytes | None:
+        """
+        A private method for executing a resource.
+
+        Parmaeters:
+            resource (Resource): resource to execute.
+            request (Request): Resource's Request.
+
+        Returns:
+            content (str | bytes | None): Executed resource content.
+        """
+        kwargs: Dict[str, Any] = request.parameters
+        function_arguments = resource.function.__annotations__
+        if request.PAYLOAD_KEY in function_arguments:
+            kwargs[request.PAYLOAD_KEY] = request.payload
+        if request.HEADERS_KEY in function_arguments:
+            kwargs[request.HEADERS_KEY] = request.headers
         try:
-            kwargs: Dict[str, Any] = request.parameters
-            function_arguments = resource.function.__annotations__
-            if request.PAYLOAD_KEY in function_arguments:
-                kwargs[request.PAYLOAD_KEY] = request.payload
-            if request.HEADERS_KEY in function_arguments:
-                kwargs[request.HEADERS_KEY] = request.headers
-
             content = resource.function(**kwargs)
         except TypeError as error:
-            logger.warning(repr(error))
-            return Response.create_error(
-                status_code=StatusCode.bad_request(), error=error
+            raise HttpError(
+                message=f"Could not execute {self.address} request's resource.",
+                status_code=StatusCode.bad_request(),
             )
-        logger.debug(
-            f"{self.address} request matched function ("
-            + f"{resource.function.__name__}) arguments."
-        )
+        return content
 
-        # Encoding if needed.
-        try:
-            if not content:
-                return Response(
-                    status_code=StatusCode.ok(),
-                    content_type=resource.content_type,
-                )
-            elif isinstance(content, str):
-                return Response(
-                    status_code=StatusCode.ok(),
-                    content=content.encode(),
-                    content_type=resource.content_type,
-                )
-            elif isinstance(content, bytes):
-                return Response(
-                    status_code=StatusCode.ok(),
-                    content=content,
-                    content_type=resource.content_type,
-                )
-            else:
-                raise ValueError(
-                    "Resource functions must return 'str', 'bytes' or 'None'."
-                )
-        except ValueError as error:
-            logger.warning(repr(error))
-            return Response.create_error(
-                status_code=StatusCode.internal_server_error(), error=error
+    def _content_to_response(
+        self, resource: Resource, content: str | bytes | None
+    ) -> Response:
+        """
+        A private method to generate a respone instance from
+        a resource and it's content.
+
+        Parameters:
+            resource (Resource): Content's resource.
+            content (str | bytes | None): content.
+
+        Returns:
+            responsne (Response): The generated resposne.
+        """
+        if not content:
+            return Response(
+                status_code=StatusCode.ok(),
+                content_type=resource.content_type,
+            )
+        elif isinstance(content, str):
+            return Response(
+                status_code=StatusCode.ok(),
+                content=content.encode(),
+                content_type=resource.content_type,
+            )
+        elif isinstance(content, bytes):
+            return Response(
+                status_code=StatusCode.ok(),
+                content=content,
+                content_type=resource.content_type,
+            )
+        else:
+            raise HttpError(
+                message="{self.address} resource function does not return 'str', 'bytes' or 'None'.",
+                status_code=StatusCode.internal_server_error(),
             )
