@@ -6,7 +6,7 @@ Description:
 
 from ..enums.content_types import ContentType
 
-from typing import Callable, Tuple
+from typing import Callable
 
 
 class Resource:
@@ -14,8 +14,10 @@ class Resource:
     A class that represents a Resource.
 
     Attributes:
-        function (Callable[..., str | bytes | None]): The content creating function.
-        content_type (ContentType): The content type of the resource.
+        function (Callable[..., str | bytes | None]):
+            The content creating function.
+        content_type (ContentType):
+            The content type of the resource.
     """
 
     def __init__(

@@ -4,7 +4,7 @@ Description:
     This module defines the 'HttpError' exception.
 """
 
-from .status_codes import StatusCode
+from .status_code import StatusCode
 
 
 class HttpError(Exception):

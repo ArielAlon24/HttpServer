@@ -1,3 +1,4 @@
+from http_server.models import status_code
 from http_server.server import Server
 from http_server.enums.content_types import ContentType
 from http_server.utils import file
@@ -28,6 +29,22 @@ def styles() -> bytes:
 def add(a: str, b: str) -> str:
     result = int(a) + int(b)
     return f"<h1> Result = {result} </h1>"
+
+
+@app.route(path="/division", content_type=ContentType.HTML)
+def division() -> str:
+    division = 1 / 0
+    return "Oh no!"
+
+
+@app.error(status=status_code.NOT_FOUND, content_type=ContentType.HTML)
+def not_found() -> str:
+    return "<h1> Oops not found... </h1>"
+
+
+@app.error(status=status_code.INTERNAL_SERVER_ERROR, content_type=ContentType.HTML)
+def intenal_server_error() -> None:
+    test = a + 2
 
 
 if __name__ == "__main__":

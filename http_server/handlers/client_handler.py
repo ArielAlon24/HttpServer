@@ -7,11 +7,12 @@ Description:
 
 from http_server.models.request import Request
 from .logging_handler import LoggingHandler
-from ..models.status_codes import StatusCode
+from ..models import status_code
 from ..models.http_error import HttpError
 from ..models.response import Response
 from ..models.resource import Resource
 from ..models.route import Route
+from ..models.status_code import StatusCode
 from ..utils import http
 
 from typing import Tuple, Dict, Any
@@ -38,6 +39,7 @@ class ClientHandler:
         socket: socket.socket,
         address: Tuple[str, int],
         routes: Dict[Route, Resource],
+        error_routes: Dict[StatusCode, Resource],
         timeout: float = 0.5,
     ) -> None:
         """
@@ -52,6 +54,7 @@ class ClientHandler:
         self.socket = socket
         self.address = address
         self.routes = routes
+        self.error_routes = error_routes
 
         self.socket.settimeout(timeout)
         logger.debug(f"Initiated {self.__class__.__name__} on {self.address}.")
@@ -109,13 +112,50 @@ class ClientHandler:
 
             response = self._content_to_response(resource=resource, content=content)
             logger.debug(f"Response for {self.address} created.")
-        except HttpError as error:
-            logger.warning(repr(error))
-            return Response.from_error(status_code=error.status_code, error=error)
         except Exception as error:
-            logger.error(repr(error))
-            return Response.from_error(
-                status_code=StatusCode.internal_server_error(), error=error
+            logger.warning(
+                f"Couldn't create response for {self.address}, trying to create error response."
+            )
+            return self._generate_error_response(error=error)
+        return response
+
+    def _generate_error_response(
+        self, error: Exception, max_tries: int = 3
+    ) -> Response:
+        """
+        Generating an error resposne to the error prone request sent from the client.
+
+        Parameters:
+            error (Exception): The error that triggered this response.
+            max_tries (int): If the creation fails, how many retries are allowed.
+
+        Returns:
+            response (Response): Generated response.
+        """
+        if isinstance(error, HttpError):
+            status = error.status_code
+        else:
+            status = status_code.INTERNAL_SERVER_ERROR
+
+        if status not in self.error_routes.keys():
+            return Response.from_error(status_code=status, error=error)
+        resource = self.error_routes[status]
+        logger.debug(f"Found '{status}' error resource for {self.address}.")
+
+        try:
+            content = resource.function()
+            logger.debug(f"{self.address} {status} error content created.")
+            response = self._content_to_response(resource=resource, content=content)
+            logger.debug(f"{self.address} {status} error response generated.")
+        except (HttpError, Exception) as error:
+            logger.error(
+                f"Couldn't create {status} error for {self.address}"
+                + f" ({max_tries} tries left): {repr(error)}"
+            )
+            if max_tries <= 1:
+                return Response.from_error(error=error)
+            response = self._generate_error_response(
+                error=error, max_tries=max_tries - 1
             )
         return response
 
@@ -134,12 +174,12 @@ class ClientHandler:
         except socket.error as error:
             raise HttpError(
                 message=f"Could not receive data from client at {self.address}.",
-                status_code=StatusCode.bad_request(),
+                status_code=status_code.BAD_REQUEST,
             )
         if not raw_request:
             raise HttpError(
                 message=f"No data received from client at {self.address}.",
-                status_code=StatusCode.bad_request(),
+                status_code=status_code.BAD_REQUEST,
             )
 
         return raw_request
@@ -159,7 +199,7 @@ class ClientHandler:
         except ValueError as error:
             raise HttpError(
                 message=f"Could not parse {self.address} request.",
-                status_code=StatusCode.bad_request(),
+                status_code=status_code.BAD_REQUEST,
             )
         return request
 
@@ -178,7 +218,7 @@ class ClientHandler:
         except KeyError as error:
             raise HttpError(
                 message=f"Could not find {self.address} request's resource.",
-                status_code=StatusCode.not_found(),
+                status_code=status_code.NOT_FOUND,
             )
         return resource
 
@@ -206,7 +246,7 @@ class ClientHandler:
         except TypeError as error:
             raise HttpError(
                 message=f"Could not execute {self.address} request's resource.",
-                status_code=StatusCode.bad_request(),
+                status_code=status_code.BAD_REQUEST,
             )
         return content
 
@@ -226,23 +266,23 @@ class ClientHandler:
         """
         if not content:
             return Response(
-                status_code=StatusCode.ok(),
+                status_code=status_code.OK,
                 content_type=resource.content_type,
             )
         elif isinstance(content, str):
             return Response(
-                status_code=StatusCode.ok(),
+                status_code=status_code.OK,
                 content=content.encode(),
                 content_type=resource.content_type,
             )
         elif isinstance(content, bytes):
             return Response(
-                status_code=StatusCode.ok(),
+                status_code=status_code.OK,
                 content=content,
                 content_type=resource.content_type,
             )
         else:
             raise HttpError(
                 message="{self.address} resource function does not return 'str', 'bytes' or 'None'.",
-                status_code=StatusCode.internal_server_error(),
+                status_code=status_code.INTERNAL_SERVER_ERROR,
             )

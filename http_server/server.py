@@ -10,8 +10,10 @@ from .enums.methods import Method
 from .enums.content_types import ContentType
 from .models.resource import Resource
 from .models.route import Route
+from .models.status_code import StatusCode
+from .models import status_code
 
-from typing import Callable, Tuple, Dict
+from typing import Callable, Tuple, Dict, List
 from logging import Logger
 from concurrent.futures import ThreadPoolExecutor
 import socket
@@ -25,9 +27,12 @@ class Server:
     A class that represents an HTTP server.
 
     Attributes:
+        socket (socket.scoket): Server's TCP socket.
         ip (str): The Server's IP.
         port (int): The Server's port.
         max_clients (int): Total number of connected clients simultaneously.
+        routes (Dict[Route, Resource]): Server's routes.
+        error_routes (Dict[StatusCode, Resource]): Server's error routes.
     """
 
     def __init__(
@@ -51,7 +56,7 @@ class Server:
         self.socket.listen(max_clients)
 
         self.routes: Dict[Route, Resource] = {}
-        self.error_routes: Dict[Route, Resource] = {}
+        self.error_routes: Dict[StatusCode, Resource] = {}
 
         logger.debug(
             f"Initiated {self.__class__.__name__} on ({ip}, {port}) "
@@ -92,6 +97,67 @@ class Server:
             )
 
         return wrapper
+
+    def error(
+        self,
+        status: StatusCode,
+        content_type: ContentType = ContentType.HTML,
+    ) -> Callable[..., None]:
+        """
+        A decorator for adding an error route to the to the server.
+
+        Parameters:
+            status (StatusCode): Error status code.
+            content_type (ContentType):
+                The content type of the resource of the route.
+
+        Returns:
+            Callable[..., None]: The wrapper.
+        """
+
+        def wrapper(function: Callable[..., str | bytes | None]) -> None:
+            """
+            The inner function of the decorator.
+
+            Parameters:
+                function (Callable[..., str | bytes | None]): The decorated function.
+            """
+            self.add_error_routes(
+                statuses=[status], function=function, content_type=content_type
+            )
+
+        return wrapper
+
+    def add_error_routes(
+        self,
+        statuses: List[StatusCode],
+        function: Callable[..., str | bytes | None],
+        content_type: ContentType,
+    ):
+        """
+        Add a error routes to the to the server.
+
+        Parameters:
+            statuses (List[StatusCode]):
+                All errors that route this route.
+            function (Callable[..., str | bytes | None]):
+                Resource creating function.
+            content_type (ContentType):
+                The content type of the resource of the route.
+        """
+        for status in statuses:
+            if status == status_code.OK:
+                logger.error(
+                    f"Cannot add an error route for {status_code.OK} status code."
+                )
+                continue
+            self.error_routes[status] = Resource(
+                function=function, content_type=content_type
+            )
+            logger.debug(
+                f"Added error route '{status}' to function "
+                + f"'{function.__name__}' with {content_type.name} content type."
+            )
 
     def add_route(
         self,
@@ -139,7 +205,10 @@ class Server:
                 logger.debug(f"Accepted connection from {address}.")
 
                 client_handler = ClientHandler(
-                    socket=socket, address=address, routes=self.routes
+                    socket=socket,
+                    address=address,
+                    routes=self.routes,
+                    error_routes=self.error_routes,
                 )
 
                 executor.submit(client_handler.handle)

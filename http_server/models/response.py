@@ -5,11 +5,13 @@ Description:
 """
 from __future__ import annotations
 
-from .status_codes import StatusCode
+from .status_code import StatusCode
+from . import status_code
 from ..enums.content_types import ContentType
 from ..enums.header_types import HeaderType
 from ..utils import html
 from ..utils import file
+from ..utils import date
 
 from typing import Dict, Optional, Self
 import traceback
@@ -63,7 +65,11 @@ class Response:
             self._generate_headers()
 
     @classmethod
-    def from_error(cls, status_code: StatusCode, error: Exception) -> Response:
+    def from_error(
+        cls,
+        error: Exception,
+        status_code: StatusCode = status_code.INTERNAL_SERVER_ERROR,
+    ) -> Response:
         """
         Initialize an error Response, this response if for developing purposes
         and adds the traceback of the exception to the response's payload.
@@ -98,6 +104,9 @@ class Response:
 
         if HeaderType.CONTENT_TYPE.value not in self.headers:
             self.headers[HeaderType.CONTENT_TYPE.value] = self.content_type.value
+
+        if HeaderType.DATE.value not in self.headers:
+            self.headers[HeaderType.DATE.value] = date.rfc7321()
 
     def to_bytes(self) -> bytes:
         """

@@ -10,8 +10,9 @@ from enum import Enum
 
 class HeaderType(Enum):
     """
-    An header type enum.
+    An http header type enum.
     """
 
     CONTENT_TYPE = "Content-Type"
     CONTENT_LENGTH = "Content-Length"
+    DATE = "Date"
