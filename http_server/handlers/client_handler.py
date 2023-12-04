@@ -266,23 +266,23 @@ class ClientHandler:
         """
         if not content:
             return Response(
-                status_code=status_code.OK,
+                status_code=resource.success_status,
                 content_type=resource.content_type,
             )
         elif isinstance(content, str):
             return Response(
-                status_code=status_code.OK,
+                status_code=resource.success_status,
                 content=content.encode(),
                 content_type=resource.content_type,
             )
         elif isinstance(content, bytes):
             return Response(
-                status_code=status_code.OK,
+                status_code=resource.success_status,
                 content=content,
                 content_type=resource.content_type,
             )
         else:
             raise HttpError(
-                message="{self.address} resource function does not return 'str', 'bytes' or 'None'.",
+                message=f"{self.address} resource function does not return {repr(str)}, {repr(bytes)} or {repr(None)}.",
                 status_code=status_code.INTERNAL_SERVER_ERROR,
             )

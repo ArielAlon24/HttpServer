@@ -13,7 +13,7 @@ from ..utils import html
 from ..utils import file
 from ..utils import date
 
-from typing import Dict, Optional, Self
+from typing import Dict, Optional
 import traceback
 
 

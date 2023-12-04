@@ -13,7 +13,7 @@ from .models.route import Route
 from .models.status_code import StatusCode
 from .models import status_code
 
-from typing import Callable, Tuple, Dict, List
+from typing import Callable, Dict, List
 from logging import Logger
 from concurrent.futures import ThreadPoolExecutor
 import socket
@@ -68,6 +68,7 @@ class Server:
         method: Method = Method.GET,
         path: str = "/",
         content_type: ContentType = ContentType.HTML,
+        success_status: StatusCode = status_code.OK,
     ) -> Callable[..., None]:
         """
         A decorator for adding a route to the to the server.
@@ -94,6 +95,7 @@ class Server:
                 method=method,
                 path=path,
                 content_type=content_type,
+                success_status=success_status,
             )
 
         return wrapper
@@ -152,7 +154,9 @@ class Server:
                 )
                 continue
             self.error_routes[status] = Resource(
-                function=function, content_type=content_type
+                function=function,
+                content_type=content_type,
+                success_status=status,
             )
             logger.debug(
                 f"Added error route '{status}' to function "
@@ -165,6 +169,7 @@ class Server:
         method: Method = Method.GET,
         path: str = "/",
         content_type: ContentType = ContentType.HTML,
+        success_status: StatusCode = status_code.OK,
     ) -> None:
         """
         Add a route to the to the server.
@@ -180,6 +185,7 @@ class Server:
         self.routes[Route(method=method, path=path)] = Resource(
             function=function,
             content_type=content_type,
+            success_status=success_status,
         )
         logger.debug(
             f"Added route '{method.name} {path}' to function "

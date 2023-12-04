@@ -13,7 +13,7 @@ def favicon() -> bytes:
     return file.read(path="resources/favicon.ico")
 
 
-@app.route(path="/", content_type=ContentType.HTML)
+@app.route(path="/", content_type=ContentType.HTML, success_status=status_code.CREATED)
 def index(payload: str, headers: Dict[str, str]) -> bytes:
     return file.template(
         path="resources/index.html", payload=payload, headers=repr(headers)
