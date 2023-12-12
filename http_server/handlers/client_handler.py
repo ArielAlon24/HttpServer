@@ -148,11 +148,14 @@ class ClientHandler:
             response = self._content_to_response(resource=resource, content=content)
             logger.debug(f"{self.address} {status} error response generated.")
         except (HttpError, Exception) as error:
-            logger.error(
-                f"Couldn't create {status} error for {self.address}"
+            logger.warning(
+                f"Could not create {repr(status)} resource for {self.address}"
                 + f" ({max_tries} tries left): {repr(error)}"
             )
             if max_tries <= 1:
+                logger.debug(
+                    f"Creating default error for: {self.address}. Reason: {repr(error)}"
+                )
                 return Response.from_error(error=error)
             response = self._generate_error_response(
                 error=error, max_tries=max_tries - 1
@@ -171,7 +174,7 @@ class ClientHandler:
         """
         try:
             raw_request = self.socket.recv(size).decode("utf-8")
-        except socket.error as error:
+        except socket.error:
             raise HttpError(
                 message=f"Could not receive data from client at {self.address}.",
                 status_code=status_code.BAD_REQUEST,
@@ -196,7 +199,7 @@ class ClientHandler:
         """
         try:
             request = http.parse(raw_request)
-        except ValueError as error:
+        except ValueError:
             raise HttpError(
                 message=f"Could not parse {self.address} request.",
                 status_code=status_code.BAD_REQUEST,
@@ -215,7 +218,7 @@ class ClientHandler:
         """
         try:
             resource = self.routes[Route(method=request.method, path=request.path)]
-        except KeyError as error:
+        except KeyError:
             raise HttpError(
                 message=f"Could not find {self.address} request's resource.",
                 status_code=status_code.NOT_FOUND,

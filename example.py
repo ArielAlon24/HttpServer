@@ -7,10 +7,11 @@ from typing import Dict
 
 app = Server()
 
-
-@app.route(path="/favicon.ico", content_type=ContentType.IMAGE)
-def favicon() -> bytes:
-    return file.read(path="resources/favicon.ico")
+app.add_file_route(
+    file_path="resources/favicon.ico",
+    content_type=ContentType.IMAGE,
+    path="/favicon.ico",
+)
 
 
 @app.route(path="/", content_type=ContentType.HTML, success_status=status_code.CREATED)

@@ -16,6 +16,26 @@ from ..utils import date
 from typing import Dict, Optional
 import traceback
 
+DEFAULT_ERROR_HTML: str = """
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Error</title>
+   </head>
+   <body>
+      <h1>
+        <pre>[status]</pre>
+      </h1>
+      <h2>
+        <pre>[error]</pre>
+      </h2>
+      <pre>[traceback]</pre>
+   </body>
+</html>
+"""
+
 
 class Response:
     """
@@ -81,15 +101,28 @@ class Response:
         Returns:
             Response: An error Response.
         """
-        content = file.template(
-            "resources/error.html",
-            status=repr(status_code),
-            error=html.string_to_html(repr(error)),
-            traceback=html.string_to_html(traceback.format_exc()),
-        )
+        content = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+           <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Error</title>
+           </head>
+           <body>
+              <h1>
+                <pre>{repr(status_code)}</pre>
+              </h1>
+              <h2>
+                <pre>{html.string_to_html(repr(error))}</pre>
+              </h2>
+              <pre>{html.string_to_html(traceback.format_exc())}</pre>
+           </body>
+        </html>
+        """
         response = Response(
             status_code=status_code,
-            content=content,
+            content=content.encode(),
             content_type=ContentType.HTML,
         )
         response._generate_headers()

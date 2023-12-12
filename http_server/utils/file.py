@@ -2,9 +2,9 @@
 Name: Ariel Alon
 Description:
     This module has file related utility functions.
+    Note: It can raise any Exceptions regarding files,
+    they are handled in the client_handler.
 """
-
-import os
 
 
 def read(path: str) -> bytes:
@@ -17,10 +17,8 @@ def read(path: str) -> bytes:
     Returns:
         bytes: The file's content.
     """
-    if os.path.exists(path):
-        with open(path, "rb") as file:
-            return file.read()
-    return b""
+    with open(path, "rb") as file:
+        return file.read()
 
 
 def template(path: str, **kwargs: str) -> bytes:
@@ -35,9 +33,6 @@ def template(path: str, **kwargs: str) -> bytes:
     Returns:
         bytes: The template after key-value replacement.
     """
-    if not os.path.exists(path):
-        return b""
-
     with open(path, "r") as template:
         content = template.read()
 

@@ -12,6 +12,7 @@ from .models.resource import Resource
 from .models.route import Route
 from .models.status_code import StatusCode
 from .models import status_code
+from .utils import file
 
 from typing import Callable, Dict, List
 from logging import Logger
@@ -170,6 +171,7 @@ class Server:
         path: str = "/",
         content_type: ContentType = ContentType.HTML,
         success_status: StatusCode = status_code.OK,
+        _debug: bool = True,
     ) -> None:
         """
         Add a route to the to the server.
@@ -181,15 +183,50 @@ class Server:
             path (str): A string path for the route to be added.
             content_type (ContentType):
                 The content type of the resource of the route.
+            _debug (bool): Is route addition logged.
         """
         self.routes[Route(method=method, path=path)] = Resource(
             function=function,
             content_type=content_type,
             success_status=success_status,
         )
+
+        if _debug:
+            logger.debug(
+                f"Added route '{method.name} {path}' to function "
+                + f"'{function.__name__}' with {content_type.name} content type."
+            )
+
+    def add_file_route(
+        self,
+        file_path: str,
+        method: Method = Method.GET,
+        path: str = "/",
+        content_type: ContentType = ContentType.HTML,
+        success_status: StatusCode = status_code.OK,
+    ) -> None:
+        """
+        Add a file route to the to the server.
+
+        Parameters:
+            file_path (str): Resource file.
+            method (Method): The method type of the request.
+            path (str): A string path for the route to be added.
+            content_type (ContentType):
+                The content type of the resource of the route.
+        """
+        self.add_route(
+            function=lambda: file.read(path=file_path),
+            method=method,
+            path=path,
+            content_type=content_type,
+            success_status=success_status,
+            _debug=False,
+        )
+
         logger.debug(
-            f"Added route '{method.name} {path}' to function "
-            + f"'{function.__name__}' with {content_type.name} content type."
+            f"Added route '{method.name} {path}' to '{file_path}' "
+            + f"file contents with {content_type.name} content type."
         )
 
     def _run(self, max_workers: int) -> None:
