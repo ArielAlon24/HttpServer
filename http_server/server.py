@@ -215,8 +215,10 @@ class Server:
             content_type (ContentType):
                 The content type of the resource of the route.
         """
+        function = lambda: file.read(path=file_path)
+        function.__name__ = file.read.__name__
         self.add_route(
-            function=lambda: file.read(path=file_path),
+            function=function,
             method=method,
             path=path,
             content_type=content_type,
