@@ -97,16 +97,14 @@ class ClientHandler:
 
     def _send_chunks(self, response: Response) -> None:
         response_bytes = response.to_bytes()
+        count = 0
         for i in range(0, len(response_bytes), self.CHUNK_SIZE):
             chunk = response_bytes[i : i + self.CHUNK_SIZE]
             self.socket.send(chunk)
-
-            logger.debug(
-                f"Sent chunk {i//self.CHUNK_SIZE + 1} for {self.address} request."
-            )
+            count += 1
 
         logger.debug(
-            f"Completed sending all response chunks for {self.address} request."
+            f"Completed sending all response chunks ({count}) for {self.address} request."
         )
 
     def _generate_response(self) -> Response:
