@@ -17,3 +17,5 @@ class ContentType(Enum):
     CSS = "text/css"
     JS = "text/javascript; charset=utf-8"
     JSON = "application/json"
+    WOFF2 = "font/woff2"
+    TTF = "font/ttf"
