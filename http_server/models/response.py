@@ -1,12 +1,11 @@
 """
-Name: Ariel Alon
 Description:
     This module defines the 'Response' class and related methods.
 """
 from __future__ import annotations
 
-from .status_code import StatusCode
-from . import status_code
+from .redirect import Redirect
+from ..enums.status_code import StatusCode
 from ..enums.content_types import ContentType
 from ..enums.header_types import HeaderType
 from ..utils import html
@@ -15,26 +14,6 @@ from ..utils import date
 
 from typing import Dict, Optional
 import traceback
-
-DEFAULT_ERROR_HTML: str = """
-<!DOCTYPE html>
-<html lang="en">
-   <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Error</title>
-   </head>
-   <body>
-      <h1>
-        <pre>[status]</pre>
-      </h1>
-      <h2>
-        <pre>[error]</pre>
-      </h2>
-      <pre>[traceback]</pre>
-   </body>
-</html>
-"""
 
 
 class Response:
@@ -61,7 +40,7 @@ class Response:
         status_code: StatusCode,
         headers: Optional[Dict[str, str]] = None,
         content: Optional[bytes] = None,
-        content_type: ContentType = ContentType.HTML,
+        content_type: ContentType | None = None,
         auto_generated_headers: bool = True,
     ) -> None:
         """
@@ -88,7 +67,7 @@ class Response:
     def from_error(
         cls,
         error: Exception,
-        status_code: StatusCode = status_code.INTERNAL_SERVER_ERROR,
+        status_code: StatusCode = StatusCode.INTERNAL_SERVER_ERROR,
     ) -> Response:
         """
         Initialize an error Response, this response if for developing purposes
@@ -128,6 +107,22 @@ class Response:
         response._generate_headers()
         return response
 
+    @classmethod
+    def from_redirect(cls, redirect: Redirect) -> Response:
+        """
+        Create a redirect response.
+
+        Attributes:
+            redirect (Redirect): Redirect object.
+
+        Returns:
+            A redirect response.
+        """
+        response = Response(status_code=redirect.status_code)
+        response._generate_headers()
+        response.headers[HeaderType.LOCATION.value] = redirect.location
+        return response
+
     def _generate_headers(self) -> None:
         """
         Generate headers for a response.
@@ -135,7 +130,7 @@ class Response:
         if self.content and HeaderType.CONTENT_LENGTH.value not in self.headers:
             self.headers[HeaderType.CONTENT_LENGTH.value] = str(len(self.content))
 
-        if HeaderType.CONTENT_TYPE.value not in self.headers:
+        if self.content_type and HeaderType.CONTENT_TYPE.value not in self.headers:
             self.headers[HeaderType.CONTENT_TYPE.value] = self.content_type.value
 
         if HeaderType.DATE.value not in self.headers:

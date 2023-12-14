@@ -1,5 +1,4 @@
 """
-Name: Ariel Alon
 Description:
     This module defines the 'Request' class and all related methods.
 """

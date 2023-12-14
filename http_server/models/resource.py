@@ -1,11 +1,10 @@
 """
-Name: Ariel Alon
 Description:
     This module defines the 'Resource' class.
 """
 
 from ..enums.content_types import ContentType
-from .status_code import StatusCode
+from ..enums.status_code import StatusCode
 
 from typing import Callable
 

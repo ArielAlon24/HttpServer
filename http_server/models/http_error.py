@@ -1,10 +1,9 @@
 """
-Name: Ariel Alon
 Description:
     This module defines the 'HttpError' exception.
 """
 
-from .status_code import StatusCode
+from ..enums.status_code import StatusCode
 
 
 class HttpError(Exception):

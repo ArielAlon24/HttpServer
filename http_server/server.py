@@ -10,8 +10,8 @@ from .enums.methods import Method
 from .enums.content_types import ContentType
 from .models.resource import Resource
 from .models.route import Route
-from .models.status_code import StatusCode
-from .models import status_code
+from .enums.status_code import StatusCode
+
 from .utils import file
 
 from typing import Callable, Dict, List
@@ -69,7 +69,7 @@ class Server:
         method: Method = Method.GET,
         path: str = "/",
         content_type: ContentType = ContentType.HTML,
-        success_status: StatusCode = status_code.OK,
+        success_status: StatusCode = StatusCode.OK,
     ) -> Callable[..., None]:
         """
         A decorator for adding a route to the to the server.
@@ -149,9 +149,9 @@ class Server:
                 The content type of the resource of the route.
         """
         for status in statuses:
-            if status == status_code.OK:
+            if status == StatusCode.OK:
                 logger.error(
-                    f"Cannot add an error route for {status_code.OK} status code."
+                    f"Cannot add an error route for {StatusCode.OK} status code."
                 )
                 continue
             self.error_routes[status] = Resource(
@@ -170,7 +170,7 @@ class Server:
         method: Method = Method.GET,
         path: str = "/",
         content_type: ContentType = ContentType.HTML,
-        success_status: StatusCode = status_code.OK,
+        success_status: StatusCode = StatusCode.OK,
         _debug: bool = True,
     ) -> None:
         """
@@ -203,7 +203,7 @@ class Server:
         method: Method = Method.GET,
         path: str = "/",
         content_type: ContentType = ContentType.HTML,
-        success_status: StatusCode = status_code.OK,
+        success_status: StatusCode = StatusCode.OK,
     ) -> None:
         """
         Add a file route to the to the server.

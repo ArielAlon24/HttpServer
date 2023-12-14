@@ -1,4 +1,5 @@
-from http_server.models import status_code
+from http_server.enums.status_code import StatusCode
+from http_server.models.redirect import Redirect
 from http_server.server import Server
 from http_server.enums.content_types import ContentType
 from http_server.utils import file
@@ -14,7 +15,7 @@ app.add_file_route(
 )
 
 
-@app.route(path="/", content_type=ContentType.HTML, success_status=status_code.CREATED)
+@app.route(path="/", content_type=ContentType.HTML)
 def index(payload: str, headers: Dict[str, str]) -> bytes:
     return file.template(
         path="resources/index.html", payload=payload, headers=repr(headers)
@@ -38,12 +39,17 @@ def division() -> str:
     return "Oh no!"
 
 
-@app.error(status=status_code.NOT_FOUND, content_type=ContentType.HTML)
+@app.error(status=StatusCode.NOT_FOUND, content_type=ContentType.HTML)
 def not_found() -> str:
     return "<h1> Oops not found... </h1>"
 
 
-@app.error(status=status_code.INTERNAL_SERVER_ERROR, content_type=ContentType.HTML)
+@app.route(path="/redirect")
+def redirect() -> Redirect:
+    return Redirect(location="/")
+
+
+@app.error(status=StatusCode.INTERNAL_SERVER_ERROR, content_type=ContentType.HTML)
 def intenal_server_error() -> None:
     test = a + 2
 

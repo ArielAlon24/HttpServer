@@ -1,5 +1,4 @@
 """
-Name: Ariel Alon
 Description:
     This module defines the 'ClientHandler' class for handling
     each connected client.
@@ -7,12 +6,12 @@ Description:
 
 from http_server.models.request import Request
 from .logging_handler import LoggingHandler
-from ..models import status_code
 from ..models.http_error import HttpError
 from ..models.response import Response
 from ..models.resource import Resource
 from ..models.route import Route
-from ..models.status_code import StatusCode
+from ..models.redirect import Redirect
+from ..enums.status_code import StatusCode
 from ..utils import http
 
 from typing import Tuple, Dict, Any
@@ -21,6 +20,8 @@ from logging import Logger
 
 # the global logger of this module
 logger: Logger = LoggingHandler.create_logger(__name__)
+
+Content = str | bytes | None | Redirect
 
 
 class ClientHandler:
@@ -156,12 +157,12 @@ class ClientHandler:
         if isinstance(error, HttpError):
             status = error.status_code
         else:
-            status = status_code.INTERNAL_SERVER_ERROR
+            status = StatusCode.INTERNAL_SERVER_ERROR
 
         if status not in self.error_routes.keys():
             return Response.from_error(status_code=status, error=error)
         resource = self.error_routes[status]
-        logger.debug(f"Found '{status}' error resource for {self.address}.")
+        logger.debug(f"Found '{repr(status.value)}' error resource for {self.address}.")
 
         try:
             content = resource.function()
@@ -170,7 +171,7 @@ class ClientHandler:
             logger.debug(f"{self.address} {status} error response generated.")
         except (HttpError, Exception) as error:
             logger.warning(
-                f"Could not create {repr(status)} resource for {self.address}"
+                f"Could not create {status} resource for {self.address}"
                 + f" ({max_tries} tries left): {repr(error)}"
             )
             if max_tries <= 1:
@@ -198,12 +199,12 @@ class ClientHandler:
         except socket.error:
             raise HttpError(
                 message=f"Could not receive data from client at {self.address}.",
-                status_code=status_code.BAD_REQUEST,
+                status_code=StatusCode.BAD_REQUEST,
             )
         if not raw_request:
             raise HttpError(
                 message=f"No data received from client at {self.address}.",
-                status_code=status_code.BAD_REQUEST,
+                status_code=StatusCode.BAD_REQUEST,
             )
 
         return raw_request
@@ -223,7 +224,7 @@ class ClientHandler:
         except ValueError:
             raise HttpError(
                 message=f"Could not parse {self.address} request.",
-                status_code=status_code.BAD_REQUEST,
+                status_code=StatusCode.BAD_REQUEST,
             )
         return request
 
@@ -242,13 +243,11 @@ class ClientHandler:
         except KeyError:
             raise HttpError(
                 message=f"Could not find {self.address} request's resource.",
-                status_code=status_code.NOT_FOUND,
+                status_code=StatusCode.NOT_FOUND,
             )
         return resource
 
-    def _execute_resource(
-        self, resource: Resource, request: Request
-    ) -> str | bytes | None:
+    def _execute_resource(self, resource: Resource, request: Request) -> Content:
         """
         A private method for executing a resource.
 
@@ -270,15 +269,12 @@ class ClientHandler:
         except TypeError as error:
             raise HttpError(
                 message=f"Could not execute {self.address} request's resource.",
-                status_code=status_code.BAD_REQUEST,
+                status_code=StatusCode.BAD_REQUEST,
             )
-        if content:
-            logger.debug(f"Content is of size: {len(content)}")
+
         return content
 
-    def _content_to_response(
-        self, resource: Resource, content: str | bytes | None
-    ) -> Response:
+    def _content_to_response(self, resource: Resource, content: Content) -> Response:
         """
         A private method to generate a respone instance from
         a resource and it's content.
@@ -290,11 +286,13 @@ class ClientHandler:
         Returns:
             responsne (Response): The generated resposne.
         """
-        if not content:
+        if content is None:
             return Response(
                 status_code=resource.success_status,
                 content_type=resource.content_type,
             )
+        elif isinstance(content, Redirect):
+            return Response.from_redirect(content)
         elif isinstance(content, str):
             return Response(
                 status_code=resource.success_status,
@@ -310,5 +308,5 @@ class ClientHandler:
         else:
             raise HttpError(
                 message=f"{self.address} resource function does not return {repr(str)}, {repr(bytes)} or {repr(None)}.",
-                status_code=status_code.INTERNAL_SERVER_ERROR,
+                status_code=StatusCode.INTERNAL_SERVER_ERROR,
             )

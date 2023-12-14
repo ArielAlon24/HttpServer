@@ -1,5 +1,4 @@
 """
-Name: Ariel Alon
 Description:
     This module contains an enum for header types.
 """
@@ -15,4 +14,5 @@ class HeaderType(Enum):
 
     CONTENT_TYPE = "Content-Type"
     CONTENT_LENGTH = "Content-Length"
+    LOCATION = "Location"
     DATE = "Date"

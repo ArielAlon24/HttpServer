@@ -1,5 +1,4 @@
 """
-Name: Ariel Alon
 Description:
     This module creates a 'LoggingHandler' for handling all the
     loggers that exist in this project.
