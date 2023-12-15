@@ -4,8 +4,6 @@ Description:
 """
 from ..enums.methods import Method
 
-from typing import Self
-
 
 class Route:
     """
@@ -36,7 +34,7 @@ class Route:
         """
         return hash((self.method, self.path))
 
-    def __eq__(self, other: Self) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Compare route instances. Used for using a Route as a dictionary key.
 

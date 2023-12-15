@@ -10,6 +10,7 @@ from .enums.methods import Method
 from .enums.content_types import ContentType
 from .models.resource import Resource
 from .models.route import Route
+from .models.redirect import Redirect
 from .enums.status_code import StatusCode
 
 from .utils import file
@@ -84,7 +85,7 @@ class Server:
             Callable[..., None]: The wrapper.
         """
 
-        def wrapper(function: Callable[..., str | bytes | None]) -> None:
+        def wrapper(function: Callable[..., str | bytes | None | Redirect]) -> None:
             """
             The inner function of the decorator.
 
@@ -118,7 +119,7 @@ class Server:
             Callable[..., None]: The wrapper.
         """
 
-        def wrapper(function: Callable[..., str | bytes | None]) -> None:
+        def wrapper(function: Callable[..., str | bytes | None | Redirect]) -> None:
             """
             The inner function of the decorator.
 
@@ -134,7 +135,7 @@ class Server:
     def add_error_routes(
         self,
         statuses: List[StatusCode],
-        function: Callable[..., str | bytes | None],
+        function: Callable[..., str | bytes | None | Redirect],
         content_type: ContentType,
     ):
         """
@@ -166,7 +167,7 @@ class Server:
 
     def add_route(
         self,
-        function: Callable[..., str | bytes | None],
+        function: Callable[..., str | bytes | None | Redirect],
         method: Method = Method.GET,
         path: str = "/",
         content_type: ContentType = ContentType.HTML,

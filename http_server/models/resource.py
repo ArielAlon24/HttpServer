@@ -5,6 +5,7 @@ Description:
 
 from ..enums.content_types import ContentType
 from ..enums.status_code import StatusCode
+from .redirect import Redirect
 
 from typing import Callable
 
@@ -24,7 +25,7 @@ class Resource:
 
     def __init__(
         self,
-        function: Callable[..., str | bytes | None],
+        function: Callable[..., str | bytes | None | Redirect],
         content_type: ContentType,
         success_status: StatusCode,
     ) -> None:

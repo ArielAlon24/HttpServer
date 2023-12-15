@@ -118,7 +118,7 @@ def _parse_headers(lines: List[str]) -> Tuple[Dict[str, str], int]:
     return headers, payload_start
 
 
-def _parse_payload(lines: List[str], payload_start: int) -> str:
+def _parse_payload(lines: List[str], payload_start: int) -> str | None:
     """
     Parse an HTTP payload.
 
