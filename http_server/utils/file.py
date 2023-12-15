@@ -1,5 +1,4 @@
 """
-Name: Ariel Alon
 Description:
     This module has file related utility functions.
     Note: It can raise any Exceptions regarding files,

@@ -1,5 +1,4 @@
 """
-Name: Ariel Alon
 Description:
     This module defines the 'Server' class and all related methods.
 """

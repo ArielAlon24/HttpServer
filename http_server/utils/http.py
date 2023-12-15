@@ -1,5 +1,4 @@
 """
-Name: Ariel Alon
 Description:
     This module has utility functions for parsing HTTP requests.
 """

@@ -1,5 +1,4 @@
 """
-Name: Ariel Alon
 Description:
     This module contains an enum for content types.
 """
