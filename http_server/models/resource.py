@@ -1,5 +1,5 @@
 from ..enums.content_types import ContentType
-from ..enums.status_code import StatusCode
+from ..enums.status_codes import StatusCode
 from .redirect import Redirect
 
 from typing import Callable

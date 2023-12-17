@@ -9,9 +9,9 @@ To use the HTTP server library, follow these steps:
 1. Import the necessary modules:
 
 ```python
-from http_server.server import Server
-from http_server.enums.content_types import ContentType
-from http_server.utils import file
+from http_server import Server
+from http_server.enums import ContentType
+from http_server.utils import FileUtils
 ```
 2. Create an instance of the HttpServer class:
 

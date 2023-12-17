@@ -1,5 +1,5 @@
-from http_server.enums.header_types import HeaderType
 from ..enums.methods import Method
+from ..enums.header_types import HeaderType
 from .cookie import Cookie
 
 from typing import Dict, Optional

@@ -1,9 +1,7 @@
-from http_server.enums.status_code import StatusCode
-from http_server.models.redirect import Redirect
-from http_server.models.cookie import Cookie
-from http_server.server import Server
-from http_server.enums.content_types import ContentType
-from http_server.utils.file import FileUtils
+from http_server import Server
+from http_server.models import Redirect, Cookie
+from http_server.enums import ContentType, StatusCode
+from http_server.utils import FileUtils
 
 from typing import Dict
 

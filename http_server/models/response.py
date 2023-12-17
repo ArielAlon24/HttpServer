@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .redirect import Redirect
 from .cookie import Cookie
-from ..enums.status_code import StatusCode
+from ..enums.status_codes import StatusCode
 from ..enums.content_types import ContentType
 from ..enums.header_types import HeaderType
 from ..utils.html import HtmlUtils

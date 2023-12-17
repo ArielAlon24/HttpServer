@@ -1,4 +1,4 @@
-from ..enums.status_code import StatusCode
+from ..enums.status_codes import StatusCode
 
 
 class Redirect:

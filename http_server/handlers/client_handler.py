@@ -6,7 +6,7 @@ from ..models.resource import Resource
 from ..models.route import Route
 from ..models.redirect import Redirect
 from ..models.cookie import Cookie
-from ..enums.status_code import StatusCode
+from ..enums.status_codes import StatusCode
 from ..utils import http
 
 from typing import Tuple, Dict, Set, Any

@@ -5,7 +5,7 @@ from .enums.content_types import ContentType
 from .models.resource import Resource
 from .models.route import Route
 from .models.redirect import Redirect
-from .enums.status_code import StatusCode
+from .enums.status_codes import StatusCode
 from .utils.file import FileUtils
 
 from typing import Callable, List, Dict
