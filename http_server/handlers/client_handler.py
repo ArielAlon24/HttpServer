@@ -1,9 +1,3 @@
-"""
-Description:
-    This module defines the 'ClientHandler' class for handling
-    each connected client.
-"""
-
 from http_server.models.request import Request
 from .logging_handler import LoggingHandler
 from ..models.http_error import HttpError
@@ -11,30 +5,20 @@ from ..models.response import Response
 from ..models.resource import Resource
 from ..models.route import Route
 from ..models.redirect import Redirect
+from ..models.cookie import Cookie
 from ..enums.status_code import StatusCode
 from ..utils import http
 
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Set, Any
 import socket
-from logging import Logger
 
-# the global logger of this module
-logger: Logger = LoggingHandler.create_logger(__name__)
+logger = LoggingHandler.create_logger(__name__)
 
 Content = str | bytes | None | Redirect
 
 
 class ClientHandler:
-    CHUNK_SIZE: int = 2048
-    """
-    A class for handling a client request.
-
-    Attributes:
-        socket (socket.socket): The client's socket.
-        address (Tuple[str, int]): The address of the client (IP, port).
-        routes: (Dict[Route, Resource]): The server's routes.
-        timeout: (float): Request timeout time (in seconds).
-    """
+    CHUNK_SIZE = 2048
 
     def __init__(
         self,
@@ -44,15 +28,6 @@ class ClientHandler:
         error_routes: Dict[StatusCode, Resource],
         timeout: float = 0.5,
     ) -> None:
-        """
-        Initialize a ClientHandler.
-
-        Parameters:
-            socket (socket.socket): The client's socket.
-            address (Tuple[str, int]): The address of the client (IP, port).
-            routes: (Dict[Route, Resource]): The server's routes.
-            timeout: (float): Request timeout time (in seconds).
-        """
         self.socket = socket
         self.address = address
         self.routes = routes
@@ -62,9 +37,6 @@ class ClientHandler:
         logger.debug(f"Initiated {self.__class__.__name__} on {self.address}.")
 
     def handle(self) -> None:
-        """
-        Handling a client request, and sending back correct response.
-        """
         try:
             self._handle()
         except Exception as e:
@@ -73,17 +45,10 @@ class ClientHandler:
             self._close()
 
     def _close(self) -> None:
-        """
-        Closing the connection with the client gracefully.
-        """
         self.socket.close()
         logger.debug(f"Closed connection with {self.address}.")
 
     def _handle(self) -> None:
-        """
-        The private handle function, generates the response and sends it
-        to the client.
-        """
         response = self._generate_response()
 
         if len(response.to_bytes()) <= self.CHUNK_SIZE:
@@ -104,16 +69,11 @@ class ClientHandler:
             count += 1
 
         logger.debug(
-            f"Completed sending all response chunks ({count}) for {self.address} request."
+            f"Completed sending all response chunks "
+            + f"({count}) for {self.address} request."
         )
 
     def _generate_response(self) -> Response:
-        """
-        Generating the resposne to the request sent from the client.
-
-        Returns:
-            response (Response): Generated response.
-        """
         try:
             raw_request = self._receive_raw_request()
             logger.debug(f"Received {self.address} request.")
@@ -124,17 +84,29 @@ class ClientHandler:
             resource = self._find_resource(request)
             logger.debug(f"Found {self.address} requested resource.")
 
-            content = self._execute_resource(resource=resource, request=request)
+            kwargs = self._load_kwargs(resource=resource, request=request)
+            logger.debug(f"Loaded {self.address} kwargs.")
+
+            content, headers, cookies = self._execute_resource(
+                resource=resource, kwargs=kwargs
+            )
+
             logger.debug(
                 f"{self.address} request matched function ("
                 + f"{resource.function.__name__}) arguments."
             )
 
-            response = self._content_to_response(resource=resource, content=content)
+            response = self._content_to_response(
+                resource=resource,
+                content=content,
+                headers=headers,
+                cookies=cookies,
+            )
             logger.debug(f"Response for {self.address} created.")
         except Exception as error:
             logger.warning(
-                f"Couldn't create response for {self.address}, trying to create error response."
+                f"Couldn't create response for {self.address}, "
+                + "trying to create error response."
             )
             return self._generate_error_response(error=error)
         return response
@@ -142,16 +114,6 @@ class ClientHandler:
     def _generate_error_response(
         self, error: Exception, max_tries: int = 3
     ) -> Response:
-        """
-        Generating an error resposne to the error prone request sent from the client.
-
-        Parameters:
-            error (Exception): The error that triggered this response.
-            max_tries (int): If the creation fails, how many retries are allowed.
-
-        Returns:
-            response (Response): Generated response.
-        """
         if isinstance(error, HttpError):
             status = error.status_code
         else:
@@ -163,9 +125,16 @@ class ClientHandler:
         logger.debug(f"Found '{repr(status.value)}' error resource for {self.address}.")
 
         try:
-            content = resource.function()
+            headers: Dict[str, str] = {}
+            cookies: Set[Cookie] = set()
+            content, headers, cookies = self._execute_resource(resource)
             logger.debug(f"{self.address} {status} error content created.")
-            response = self._content_to_response(resource=resource, content=content)
+            response = self._content_to_response(
+                resource=resource,
+                content=content,
+                headers=headers,
+                cookies=cookies,
+            )
             logger.debug(f"{self.address} {status} error response generated.")
         except (HttpError, Exception) as error:
             logger.warning(
@@ -174,7 +143,8 @@ class ClientHandler:
             )
             if max_tries <= 1:
                 logger.debug(
-                    f"Creating default error for: {self.address}. Reason: {repr(error)}"
+                    f"Creating default error for: {self.address}. "
+                    + f"Reason: {repr(error)}"
                 )
                 return Response.from_error(error=error)
             response = self._generate_error_response(
@@ -183,15 +153,6 @@ class ClientHandler:
         return response
 
     def _receive_raw_request(self, size: int = 4096) -> str:
-        """
-        A private method for receiving the request from the client.
-
-        Parameters:
-            size (int): The size in bytes of the received data.
-
-        Returns:
-            received data (str): The request of the client as a string.
-        """
         try:
             raw_request = self.socket.recv(size).decode("utf-8")
         except socket.error:
@@ -208,15 +169,6 @@ class ClientHandler:
         return raw_request
 
     def _parse_request(self, raw_request: str) -> Request:
-        """
-        A private method for parsing a raw request.
-
-        Parameters:
-            raw_request (str): Raw request string.
-
-        Returns:
-            request (Request): Parsed Reuqest.
-        """
         try:
             request = http.parse(raw_request)
         except ValueError:
@@ -227,15 +179,6 @@ class ClientHandler:
         return request
 
     def _find_resource(self, request: Request) -> Resource:
-        """
-        A private method for finding a resource based on a request.
-
-        Parmeters:
-            request (Request): Request instance.
-
-        Returns:
-            resource (Resource): Request's resource.
-        """
         try:
             resource = self.routes[Route(method=request.method, path=request.path)]
         except KeyError:
@@ -245,23 +188,21 @@ class ClientHandler:
             )
         return resource
 
-    def _execute_resource(self, resource: Resource, request: Request) -> Content:
-        """
-        A private method for executing a resource.
-
-        Parmaeters:
-            resource (Resource): resource to execute.
-            request (Request): Resource's Request.
-
-        Returns:
-            content (str | bytes | None): Executed resource content.
-        """
+    def _load_kwargs(self, resource: Resource, request: Request) -> Dict[str, Any]:
         kwargs: Dict[str, Any] = request.parameters
         function_arguments = resource.function.__annotations__
-        if request.PAYLOAD_KEY in function_arguments:
-            kwargs[request.PAYLOAD_KEY] = request.payload
-        if request.HEADERS_KEY in function_arguments:
-            kwargs[request.HEADERS_KEY] = request.headers
+        if Request.PAYLOAD_KEY in function_arguments:
+            kwargs[Request.PAYLOAD_KEY] = request.payload
+        if Request.HEADERS_KEY in function_arguments:
+            kwargs[Request.HEADERS_KEY] = request.headers
+        if Request.COOKIES_KEY in function_arguments:
+            kwargs[Request.COOKIES_KEY] = request.cookies
+        return kwargs
+
+    def _execute_resource(
+        self, resource: Resource, kwargs: Dict[str, Any] | None = None
+    ) -> Tuple[Content, Dict[str, str], Set[Cookie]]:
+        kwargs = kwargs if kwargs else {}
         try:
             content = resource.function(**kwargs)
         except TypeError as error:
@@ -270,24 +211,29 @@ class ClientHandler:
                 status_code=StatusCode.BAD_REQUEST,
             )
 
-        return content
+        headers: Dict[str, str] = {}
+        cookies: Set[Cookie] = set()
 
-    def _content_to_response(self, resource: Resource, content: Content) -> Response:
-        """
-        A private method to generate a respone instance from
-        a resource and it's content.
+        if hasattr(resource.function, Response.COOKIES_KEY):
+            cookies = getattr(resource.function, Response.COOKIES_KEY)
+        if hasattr(resource.function, Response.HEADERS_KEY):
+            cookies = getattr(resource.function, Response.HEADERS_KEY)
 
-        Parameters:
-            resource (Resource): Content's resource.
-            content (str | bytes | None): content.
+        return content, headers, cookies
 
-        Returns:
-            responsne (Response): The generated resposne.
-        """
+    def _content_to_response(
+        self,
+        resource: Resource,
+        content: Content,
+        headers: Dict[str, str],
+        cookies: Set[Cookie],
+    ) -> Response:
         if content is None:
             return Response(
                 status_code=resource.success_status,
                 content_type=resource.content_type,
+                headers=headers,
+                cookies=cookies,
             )
         elif isinstance(content, Redirect):
             return Response.from_redirect(content)
@@ -296,15 +242,20 @@ class ClientHandler:
                 status_code=resource.success_status,
                 content=content.encode(),
                 content_type=resource.content_type,
+                headers=headers,
+                cookies=cookies,
             )
         elif isinstance(content, bytes):
             return Response(
                 status_code=resource.success_status,
                 content=content,
                 content_type=resource.content_type,
+                headers=headers,
+                cookies=cookies,
             )
         else:
             raise HttpError(
-                message=f"{self.address} resource function does not return {repr(str)}, {repr(bytes)} or {repr(None)}.",
+                message=f"{self.address} resource function does not "
+                + f"return {repr(str)}, {repr(bytes)} or {repr(None)}.",
                 status_code=StatusCode.INTERNAL_SERVER_ERROR,
             )

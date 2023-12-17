@@ -1,8 +1,9 @@
 from http_server.enums.status_code import StatusCode
 from http_server.models.redirect import Redirect
+from http_server.models.cookie import Cookie
 from http_server.server import Server
 from http_server.enums.content_types import ContentType
-from http_server.utils import file
+from http_server.utils.file import FileUtils
 
 from typing import Dict
 
@@ -15,16 +16,19 @@ app.add_file_route(
 )
 
 
-@app.route(path="/", content_type=ContentType.HTML)
-def index(payload: str, headers: Dict[str, str]) -> bytes:
-    return file.template(
-        path="resources/index.html", payload=payload, headers=repr(headers)
+@app.route()
+def index(payload: str, headers: Dict[str, str], cookies: Dict[str, Cookie]) -> bytes:
+    return FileUtils.template(
+        path="resources/index.html",
+        payload=payload,
+        headers=repr(headers),
+        cookies=repr(cookies),
     )
 
 
 @app.route(path="/styles.css", content_type=ContentType.CSS)
 def styles() -> bytes:
-    return file.read(path="resources/styles.css")
+    return FileUtils.read(path="resources/styles.css")
 
 
 @app.route(path="/add", content_type=ContentType.HTML)

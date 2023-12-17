@@ -1,30 +1,21 @@
-"""
-Description:
-    This module has utility functions for parsing HTTP requests.
-"""
-
 from ..enums.methods import STRING_TO_METHOD, Method
+from ..enums.header_types import HeaderType
+from ..enums.cookie_attributes import CookieAttribute
 from ..models.request import Request
+from ..models.cookie import Cookie
+from .date import DateUtils
 
 from typing import Dict, List, Tuple
+from datetime import datetime
 
 
 def parse(request: str) -> Request:
-    """
-    Parse an HTTP request.
-
-    Parameters:
-        request (str): HTTP request string.
-
-    Returns:
-        Request: The parsed request.
-    """
     lines = request.splitlines()
     if len(lines) == 0:
         raise ValueError("Encountered empty request")
     method, path, version = _parse_header(lines[0])
     path, parameters = _parse_parameters(path)
-    headers, payload_start = _parse_headers(lines)
+    headers, cookies, payload_start = _parse_headers(lines)
     payload = _parse_payload(lines, payload_start)
     return Request(
         method=method,
@@ -32,22 +23,12 @@ def parse(request: str) -> Request:
         version=version,
         parameters=parameters if parameters else None,
         headers=headers if headers else None,
+        cookies=cookies if cookies else None,
         payload=payload,
     )
 
 
 def _parse_header(header: str) -> Tuple[Method, str, str]:
-    """
-    Parse an HTTP header.
-
-    Parameters:
-        header (str): HTTP request header string.
-
-    Returns:
-        Method: Header's method.
-        str: Header's path.
-        str: Header's version
-    """
     header_parts = header.split(" ")
     if len(header_parts) != 3:
         raise ValueError(
@@ -64,16 +45,6 @@ def _parse_header(header: str) -> Tuple[Method, str, str]:
 
 
 def _parse_parameters(path: str) -> Tuple[str, Dict[str, str]]:
-    """
-    Parse an HTTP path.
-
-    Parameters:
-        path (str): HTTP request path string.
-
-    Returns:
-        str: Request's path.
-        Dict[str, str]: Request's parameters mapping.
-    """
     parameters: Dict[str, str] = {}
     if "?" in path:
         path_parts = path.split("?")
@@ -90,17 +61,9 @@ def _parse_parameters(path: str) -> Tuple[str, Dict[str, str]]:
     return path, parameters
 
 
-def _parse_headers(lines: List[str]) -> Tuple[Dict[str, str], int]:
-    """
-    Parse HTTP headers.
-
-    Parameters:
-        lines (List[str]): HTTP header lines.
-
-    Returns:
-        Dict[str, str]: Request's headers mapping.
-        int: Payload start line.
-    """
+def _parse_headers(
+    lines: List[str],
+) -> Tuple[Dict[str, str], Dict[str, Cookie], int]:
     headers: Dict[str, str] = {}
     payload_start = 0
 
@@ -114,20 +77,86 @@ def _parse_headers(lines: List[str]) -> Tuple[Dict[str, str], int]:
         key, value = line.split(": ")
         headers[key] = value
 
-    return headers, payload_start
+    cookies: Dict[str, Cookie] = {}
+    if HeaderType.COOKIE.value in headers:
+        cookies = _parse_cookies(headers[HeaderType.COOKIE.value])
+        headers.pop(HeaderType.COOKIE.value)
+
+    return headers, cookies, payload_start
+
+
+def _parse_cookies(cookie_header: str) -> Dict[str, Cookie]:
+    cookies = {}
+    for cookie_str in cookie_header.split("; "):
+        parts = cookie_str.split(";")
+        first_pair = parts[0].split("=")
+        if len(first_pair) != 2:
+            raise ValueError(f"Could not parse Cookie: {cookie_str}")
+        name, value = first_pair
+        cookie_attrs = _parse_cookie_attributes(parts[1:])
+
+        max_age = None
+        if isinstance(_value := cookie_attrs.get(CookieAttribute.MAX_AGE.value), int):
+            max_age = _value
+
+        expires = None
+        if isinstance(
+            _value := cookie_attrs.get(CookieAttribute.EXPIRES.value), datetime
+        ):
+            expires = _value
+
+        domain = None
+        if isinstance(_value := cookie_attrs.get(CookieAttribute.DOMAIN.value), str):
+            domain = _value
+
+        path = "/"
+        if isinstance(_value := cookie_attrs.get(CookieAttribute.PATH.value), str):
+            path = _value
+
+        same_site = None
+        if (
+            str(_value := cookie_attrs.get(CookieAttribute.SAME_SITE.value))
+            in Cookie.SAME_SITE_OPTIONS
+        ):
+            same_size = _value
+
+        cookies[name] = Cookie(
+            name=name,
+            value=value,
+            max_age=max_age,
+            expires=expires,
+            domain=domain,
+            path=path,
+            secure=CookieAttribute.SECURE.value in cookie_attrs,
+            http_only=CookieAttribute.HTTP_ONLY.value in cookie_attrs,
+            same_site=same_site,
+        )
+
+    return cookies
+
+
+def _parse_cookie_attributes(
+    attr_list: List[str],
+) -> Dict[str, str | int | datetime]:
+    attrs: Dict[str, str | int | datetime] = {}
+    for attr in attr_list:
+        if "=" in attr:
+            key, value = attr.split("=")
+            key = key.strip()
+            value = value.strip()
+
+            if key == CookieAttribute.MAX_AGE.value:
+                attrs[key] = int(value)
+            elif key == CookieAttribute.EXPIRES.value:
+                attrs[key] = DateUtils.from_rfc7321(value)
+            else:
+                attrs[key] = value
+        else:
+            attrs[attr.strip()] = True
+    return attrs
 
 
 def _parse_payload(lines: List[str], payload_start: int) -> str | None:
-    """
-    Parse an HTTP payload.
-
-    Parameters:
-        lines (str): HTTP request lines.
-        payload_start (int): Payload's start line.
-
-    Returns:
-        str: Request's payload.
-    """
     payload = None
     if payload_start and payload_start < len(lines):
         payload = "\n".join(lines[payload_start:])

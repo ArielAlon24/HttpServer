@@ -1,16 +1,11 @@
-"""
-Description:
-    This module has date related utility functions.
-"""
 from datetime import datetime, timezone
 
 
-def rfc7321() -> str:
-    """
-    get the current datetime formmated in the rfc7321 format.
+class DateUtils:
+    @staticmethod
+    def rfc7321(date: datetime = datetime.now(timezone.utc)) -> str:
+        return date.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
-    Returns:
-        datetime (str): The datetime formatted
-    """
-    now = datetime.now(timezone.utc)
-    return now.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    @staticmethod
+    def from_rfc7321(string: str) -> datetime:
+        return datetime.strptime(string, "%a, %d-%b-%Y %H:%M:%S GMT")

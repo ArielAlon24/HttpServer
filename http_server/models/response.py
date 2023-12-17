@@ -1,62 +1,58 @@
-"""
-Description:
-    This module defines the 'Response' class and related methods.
-"""
 from __future__ import annotations
 
 from .redirect import Redirect
+from .cookie import Cookie
 from ..enums.status_code import StatusCode
 from ..enums.content_types import ContentType
 from ..enums.header_types import HeaderType
-from ..utils import html
-from ..utils import file
-from ..utils import date
+from ..utils.html import HtmlUtils
+from ..utils.date import DateUtils
 
-from typing import Dict, Optional
+from typing import Dict, Set
 import traceback
+
+ERROR_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8">
+      <meta name="viewport"
+            content="width=device-width,
+            initial-scale=1.0"
+      >
+      <title>Error</title>
+   </head>
+   <body>
+      <h1>
+        <pre>{status_code}</pre>
+      </h1>
+      <h2>
+        <pre>{error_html}</pre>
+      </h2>
+      <pre>{traceback_html}</pre>
+   </body>
+</html>
+"""
 
 
 class Response:
-    """
-    A class that represents an HTTP response.
-
-    Attributes:
-        CARRIAGE_RETURN (str): A carriage return string.
-        VERSION (str): Response's HTTP version.
-        status_code (StatusCode): Response's status code.
-        headers (Optional[Dict[str, str]]):
-            Request's optional headers as a str-str mapping.
-        content (Optional[bytes]): Response's content.
-        content_type (ContentType): Response's content type.
-        auto_generated_headers (bool):
-            A boolean representing whether headers will be auto generated.
-    """
-
-    VERSION: str = "HTTP/1.1"
-    CARRIAGE_RETURN: str = "\r\n"
+    VERSION = "HTTP/1.1"
+    CARRIAGE_RETURN = "\r\n"
+    HEADERS_KEY = "headers"
+    COOKIES_KEY = "cookies"
 
     def __init__(
         self,
         status_code: StatusCode,
-        headers: Optional[Dict[str, str]] = None,
-        content: Optional[bytes] = None,
+        headers: Dict[str, str] | None = None,
+        cookies: Set[Cookie] | None = None,
+        content: bytes | None = None,
         content_type: ContentType | None = None,
         auto_generated_headers: bool = True,
     ) -> None:
-        """
-        Initialize a Response.
-
-        Parameters:
-            status_code (StatusCode): Response's status code.
-            headers (Optional[Dict[str, str]]):
-                Request's optional headers as a str-str mapping.
-            content (Optional[bytes]): Response's content.
-            content_type (ContentType): Response's content type.
-            auto_generated_headers (bool):
-                A boolean representing whether headers will be auto generated.
-        """
         self.status_code = status_code
         self.headers = headers if headers else {}
+        self.cookies = cookies if cookies else set()
         self.content = content
         self.content_type = content_type
 
@@ -69,36 +65,11 @@ class Response:
         error: Exception,
         status_code: StatusCode = StatusCode.INTERNAL_SERVER_ERROR,
     ) -> Response:
-        """
-        Initialize an error Response, this response if for developing purposes
-        and adds the traceback of the exception to the response's payload.
-
-        Parameters:
-            status_code (StatusCode): Response's status code.
-            error: (Exception):
-
-        Returns:
-            Response: An error Response.
-        """
-        content = f"""
-        <!DOCTYPE html>
-        <html lang="en">
-           <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>Error</title>
-           </head>
-           <body>
-              <h1>
-                <pre>{repr(status_code)}</pre>
-              </h1>
-              <h2>
-                <pre>{html.string_to_html(repr(error))}</pre>
-              </h2>
-              <pre>{html.string_to_html(traceback.format_exc())}</pre>
-           </body>
-        </html>
-        """
+        content = ERROR_TEMPLATE.format(
+            status_code=repr(status_code),
+            error_html=HtmlUtils.string_to_html(repr(error)),
+            traceback_html=HtmlUtils.string_to_html(traceback.format_exc()),
+        )
         response = Response(
             status_code=status_code,
             content=content.encode(),
@@ -109,24 +80,12 @@ class Response:
 
     @classmethod
     def from_redirect(cls, redirect: Redirect) -> Response:
-        """
-        Create a redirect response.
-
-        Attributes:
-            redirect (Redirect): Redirect object.
-
-        Returns:
-            A redirect response.
-        """
         response = Response(status_code=redirect.status_code)
         response._generate_headers()
         response.headers[HeaderType.LOCATION.value] = redirect.location
         return response
 
     def _generate_headers(self) -> None:
-        """
-        Generate headers for a response.
-        """
         if self.content and HeaderType.CONTENT_LENGTH.value not in self.headers:
             self.headers[HeaderType.CONTENT_LENGTH.value] = str(len(self.content))
 
@@ -134,25 +93,21 @@ class Response:
             self.headers[HeaderType.CONTENT_TYPE.value] = self.content_type.value
 
         if HeaderType.DATE.value not in self.headers:
-            self.headers[HeaderType.DATE.value] = date.rfc7321()
+            self.headers[HeaderType.DATE.value] = DateUtils.rfc7321()
 
     def to_bytes(self) -> bytes:
-        """
-        Encode the response in the correct format.
+        status_line = f"{self.VERSION} {repr(self.status_code)}{self.CARRIAGE_RETURN}"
+        status_line_encoded = status_line.encode()
 
-        Returns:
-            bytes: The encoded and formatted response.
-        """
-        status_line = (
-            f"{self.VERSION} {repr(self.status_code)}{self.CARRIAGE_RETURN}"
-        ).encode()
-        headers = (
-            self.CARRIAGE_RETURN.join(
-                [f"{key}: {value}" for key, value in self.headers.items()]
-            )
-            + self.CARRIAGE_RETURN * 2
-        ).encode()
+        header_lines = [f"{key}: {value}" for key, value in self.headers.items()]
 
-        if self.content:
-            return status_line + headers + self.content + self.CARRIAGE_RETURN.encode()
-        return status_line + headers
+        for cookie in self.cookies:
+            header_lines.append(f"{HeaderType.SET_COOKIE.value}: {str(cookie)}")
+
+        headers = self.CARRIAGE_RETURN.join(header_lines) + self.CARRIAGE_RETURN * 2
+        headers_encoded = headers.encode()
+
+        first_part = status_line_encoded + headers_encoded
+        if not self.content:
+            return first_part
+        return first_part + self.content + self.CARRIAGE_RETURN.encode()

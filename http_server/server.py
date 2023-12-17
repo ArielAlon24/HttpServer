@@ -1,8 +1,3 @@
-"""
-Description:
-    This module defines the 'Server' class and all related methods.
-"""
-
 from .handlers.logging_handler import LoggingHandler
 from .handlers.client_handler import ClientHandler
 from .enums.methods import Method
@@ -11,46 +6,24 @@ from .models.resource import Resource
 from .models.route import Route
 from .models.redirect import Redirect
 from .enums.status_code import StatusCode
+from .utils.file import FileUtils
 
-from .utils import file
-
-from typing import Callable, Dict, List
-from logging import Logger
+from typing import Callable, List, Dict
 from concurrent.futures import ThreadPoolExecutor
 import socket
 
-# logger for the 'server' module
-logger: Logger = LoggingHandler.create_logger(__name__)
+logger = LoggingHandler.create_logger(__name__)
+
+Content = str | bytes | None | Redirect
 
 
 class Server:
-    """
-    A class that represents an HTTP server.
-
-    Attributes:
-        socket (socket.scoket): Server's TCP socket.
-        ip (str): The Server's IP.
-        port (int): The Server's port.
-        max_clients (int): Total number of connected clients simultaneously.
-        routes (Dict[Route, Resource]): Server's routes.
-        error_routes (Dict[StatusCode, Resource]): Server's error routes.
-    """
-
     def __init__(
         self,
         ip: str = "0.0.0.0",
         port: int = 80,
         max_clients: int = 10,
     ) -> None:
-        """
-        Initialize an instance of a Server class at (IP, port).
-
-        Parameters:
-            ip (str): The IP of the server.
-            port (int): The port of the server.
-            max_clients (int):
-                Total number of connected clients simultaneously.
-        """
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((ip, port))
@@ -60,8 +33,7 @@ class Server:
         self.error_routes: Dict[StatusCode, Resource] = {}
 
         logger.debug(
-            f"Initiated {self.__class__.__name__} on ({ip}, {port}) "
-            + f"with {max_clients} max clients."
+            f"Initiated {self.__class__.__name__} on ({ip}, {port}) with {max_clients} max clients."
         )
 
     def route(
@@ -70,27 +42,8 @@ class Server:
         path: str = "/",
         content_type: ContentType = ContentType.HTML,
         success_status: StatusCode = StatusCode.OK,
-    ) -> Callable[..., None]:
-        """
-        A decorator for adding a route to the to the server.
-
-        Parameters:
-            method (Method): The method type of the request.
-            path (str): A string path for the route to be added.
-            content_type (ContentType):
-                The content type of the resource of the route.
-
-        Returns:
-            Callable[..., None]: The wrapper.
-        """
-
-        def wrapper(function: Callable[..., str | bytes | None | Redirect]) -> None:
-            """
-            The inner function of the decorator.
-
-            Parameters:
-                function (Callable[..., str | bytes | None]): The decorated function.
-            """
+    ) -> Callable[..., Callable[..., Content]]:
+        def decorator(function: Callable[..., Content]) -> Callable[..., Content]:
             self.add_route(
                 function=function,
                 method=method,
@@ -99,37 +52,29 @@ class Server:
                 success_status=success_status,
             )
 
-        return wrapper
+            def wrapper(*args, **kwargs):
+                return function(*args, **kwargs)
+
+            return wrapper
+
+        return decorator
 
     def error(
         self,
         status: StatusCode,
         content_type: ContentType = ContentType.HTML,
-    ) -> Callable[..., None]:
-        """
-        A decorator for adding an error route to the to the server.
-
-        Parameters:
-            status (StatusCode): Error status code.
-            content_type (ContentType):
-                The content type of the resource of the route.
-
-        Returns:
-            Callable[..., None]: The wrapper.
-        """
-
-        def wrapper(function: Callable[..., str | bytes | None | Redirect]) -> None:
-            """
-            The inner function of the decorator.
-
-            Parameters:
-                function (Callable[..., str | bytes | None]): The decorated function.
-            """
+    ) -> Callable[..., Callable[..., Content]]:
+        def decorator(function: Callable[..., Content]) -> Callable[..., Content]:
             self.add_error_routes(
                 statuses=[status], function=function, content_type=content_type
             )
 
-        return wrapper
+            def wrapper(*args, **kwargs):
+                return function(*args, **kwargs)
+
+            return wrapper
+
+        return decorator
 
     def add_error_routes(
         self,
@@ -137,17 +82,6 @@ class Server:
         function: Callable[..., str | bytes | None | Redirect],
         content_type: ContentType,
     ):
-        """
-        Add a error routes to the to the server.
-
-        Parameters:
-            statuses (List[StatusCode]):
-                All errors that route this route.
-            function (Callable[..., str | bytes | None]):
-                Resource creating function.
-            content_type (ContentType):
-                The content type of the resource of the route.
-        """
         for status in statuses:
             if status == StatusCode.OK:
                 logger.error(
@@ -173,18 +107,6 @@ class Server:
         success_status: StatusCode = StatusCode.OK,
         _debug: bool = True,
     ) -> None:
-        """
-        Add a route to the to the server.
-
-        Parameters:
-            function (Callable[..., str | bytes | None]):
-                Resource creating function.
-            method (Method): The method type of the request.
-            path (str): A string path for the route to be added.
-            content_type (ContentType):
-                The content type of the resource of the route.
-            _debug (bool): Is route addition logged.
-        """
         self.routes[Route(method=method, path=path)] = Resource(
             function=function,
             content_type=content_type,
@@ -205,18 +127,10 @@ class Server:
         content_type: ContentType = ContentType.HTML,
         success_status: StatusCode = StatusCode.OK,
     ) -> None:
-        """
-        Add a file route to the to the server.
+        def function():
+            return FileUtils.read(path=file_path)
 
-        Parameters:
-            file_path (str): Resource file.
-            method (Method): The method type of the request.
-            path (str): A string path for the route to be added.
-            content_type (ContentType):
-                The content type of the resource of the route.
-        """
-        function = lambda: file.read(path=file_path)
-        function.__name__ = file.read.__name__
+        function.__name__ = FileUtils.read.__name__
         self.add_route(
             function=function,
             method=method,
@@ -232,13 +146,6 @@ class Server:
         )
 
     def _run(self, max_workers: int) -> None:
-        """
-        The private run function for the server, starts a thread pool with
-        max_workers for serving the server.
-
-        Parameters:
-            max_workers (int): Max workers for the ThreadPool.
-        """
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             while True:
                 try:
@@ -259,21 +166,42 @@ class Server:
                 executor.submit(client_handler.handle)
 
     def run(self, max_workers: int = 5) -> None:
-        """
-        The public run function for the server, runs the private run
-        function. Catches any error raised up by the server.
-
-        Parameters:
-            max_workers (int): Max workers for the '_run' method ThreadPool.
-        """
         try:
             self._run(max_workers=max_workers)
         except KeyboardInterrupt:
             self.close()
 
     def close(self) -> None:
-        """
-        Closing the server gracefully.
-        """
         logger.debug("Closed server.")
         self.socket.close()
+
+
+# def use_cookies(function: Callable[..., str]) -> Callable[..., str]:
+#     setattr(function, "cookies", set())
+
+#     def wrapper(*args, **kwargs):
+#         wrapper.cookies = getattr(function, "cookies")
+
+#         result = function(*args, **kwargs)
+
+#         setattr(function, "cookies", wrapper.cookies)
+#         return result
+
+#     wrapper.cookies = function.cookies
+#     wrapper.__name__ = function.__name__
+#     wrapper.__annotations__ = function.__annotations__
+#     return wrapper
+
+
+# def use_headers(function: Callable[..., str]) -> Callable[..., str]:
+#     function.headers = {}
+
+#     def wrapper(*args, **kwargs):
+#         nonlocal function
+#         function.headers = wrapper.headers
+#         return function(*args, **kwargs)
+
+#     wrapper.headers = function.cookies
+#     wrapper.__name__ = function.__name__
+#     wrapper.__annotations__ = function.__annotations__
+#     return wrapper
