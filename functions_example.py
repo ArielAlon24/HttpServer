@@ -1,4 +1,5 @@
 from http_server import Server
+from http_server.decorators import with_cookies
 from http_server.models import Redirect, Cookie
 from http_server.enums import ContentType, StatusCode
 from http_server.utils import FileUtils
@@ -24,6 +25,13 @@ def index(payload: str, headers: Dict[str, str], cookies: Dict[str, Cookie]) -> 
     )
 
 
+@app.route(path="/cookie")
+@with_cookies
+def set_cookie() -> str:
+    set_cookie.cookies.add(Cookie(name="test", value="123"))
+    return "done"
+
+
 @app.route(path="/styles.css", content_type=ContentType.CSS)
 def styles() -> bytes:
     return FileUtils.read(path="resources/styles.css")
@@ -37,7 +45,7 @@ def add(a: str, b: str) -> str:
 
 @app.route(path="/division", content_type=ContentType.HTML)
 def division() -> str:
-    division = 1 / 0
+    _ = 1 / 0
     return "Oh no!"
 
 

@@ -1,20 +1,14 @@
-from .handlers.logging_handler import LoggingHandler
-from .handlers.client_handler import ClientHandler
-from .enums.methods import Method
-from .enums.content_types import ContentType
-from .models.resource import Resource
-from .models.route import Route
-from .models.redirect import Redirect
-from .enums.status_codes import StatusCode
+from .handlers import LoggingHandler, ClientHandler
+from .enums import Method, ContentType, StatusCode
+from .models import Resource, Route
 from .utils.file import FileUtils
+from .types import CreatorType, Creator
 
 from typing import Callable, List, Dict
 from concurrent.futures import ThreadPoolExecutor
 import socket
 
 logger = LoggingHandler.create_logger(__name__)
-
-Content = str | bytes | None | Redirect
 
 
 class Server:
@@ -42,8 +36,8 @@ class Server:
         path: str = "/",
         content_type: ContentType = ContentType.HTML,
         success_status: StatusCode = StatusCode.OK,
-    ) -> Callable[..., Callable[..., Content]]:
-        def decorator(function: Callable[..., Content]) -> Callable[..., Content]:
+    ) -> Callable[[CreatorType], CreatorType]:
+        def decorator(function: CreatorType) -> CreatorType:
             self.add_route(
                 function=function,
                 method=method,
@@ -52,10 +46,7 @@ class Server:
                 success_status=success_status,
             )
 
-            def wrapper(*args, **kwargs):
-                return function(*args, **kwargs)
-
-            return wrapper
+            return function
 
         return decorator
 
@@ -63,23 +54,20 @@ class Server:
         self,
         status: StatusCode,
         content_type: ContentType = ContentType.HTML,
-    ) -> Callable[..., Callable[..., Content]]:
-        def decorator(function: Callable[..., Content]) -> Callable[..., Content]:
+    ) -> Callable[[CreatorType], CreatorType]:
+        def decorator(function: CreatorType) -> CreatorType:
             self.add_error_routes(
                 statuses=[status], function=function, content_type=content_type
             )
 
-            def wrapper(*args, **kwargs):
-                return function(*args, **kwargs)
-
-            return wrapper
+            return function
 
         return decorator
 
     def add_error_routes(
         self,
         statuses: List[StatusCode],
-        function: Callable[..., str | bytes | None | Redirect],
+        function: Creator,
         content_type: ContentType,
     ):
         for status in statuses:
@@ -100,7 +88,7 @@ class Server:
 
     def add_route(
         self,
-        function: Callable[..., str | bytes | None | Redirect],
+        function: Creator,
         method: Method = Method.GET,
         path: str = "/",
         content_type: ContentType = ContentType.HTML,
@@ -174,34 +162,3 @@ class Server:
     def close(self) -> None:
         logger.debug("Closed server.")
         self.socket.close()
-
-
-# def use_cookies(function: Callable[..., str]) -> Callable[..., str]:
-#     setattr(function, "cookies", set())
-
-#     def wrapper(*args, **kwargs):
-#         wrapper.cookies = getattr(function, "cookies")
-
-#         result = function(*args, **kwargs)
-
-#         setattr(function, "cookies", wrapper.cookies)
-#         return result
-
-#     wrapper.cookies = function.cookies
-#     wrapper.__name__ = function.__name__
-#     wrapper.__annotations__ = function.__annotations__
-#     return wrapper
-
-
-# def use_headers(function: Callable[..., str]) -> Callable[..., str]:
-#     function.headers = {}
-
-#     def wrapper(*args, **kwargs):
-#         nonlocal function
-#         function.headers = wrapper.headers
-#         return function(*args, **kwargs)
-
-#     wrapper.headers = function.cookies
-#     wrapper.__name__ = function.__name__
-#     wrapper.__annotations__ = function.__annotations__
-#     return wrapper

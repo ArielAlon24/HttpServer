@@ -125,7 +125,7 @@ class HttpParser:
                 str(_value := cookie_attrs.get(CookieAttribute.SAME_SITE.value))
                 in Cookie.SAME_SITE_OPTIONS
             ):
-                same_size = _value
+                same_site = str(_value)
 
             cookies[name] = Cookie(
                 name=name,

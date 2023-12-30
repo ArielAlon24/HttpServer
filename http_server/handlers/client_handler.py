@@ -1,20 +1,14 @@
 from http_server.models.request import Request
 from .logging_handler import LoggingHandler
-from ..models.http_error import HttpError
-from ..models.response import Response
-from ..models.resource import Resource
-from ..models.route import Route
-from ..models.redirect import Redirect
-from ..models.cookie import Cookie
+from ..models import HttpError, Response, Resource, Route, Redirect, Cookie
 from ..enums.status_codes import StatusCode
-from ..utils import http
+from ..utils.http import HttpParser
+from ..types import Content
 
 from typing import Tuple, Dict, Set, Any
 import socket
 
 logger = LoggingHandler.create_logger(__name__)
-
-Content = str | bytes | None | Redirect
 
 
 class ClientHandler:
@@ -170,7 +164,7 @@ class ClientHandler:
 
     def _parse_request(self, raw_request: str) -> Request:
         try:
-            request = http.parse(raw_request)
+            request = HttpParser.parse(raw_request)
         except ValueError:
             raise HttpError(
                 message=f"Could not parse {self.address} request.",
@@ -211,14 +205,8 @@ class ClientHandler:
                 status_code=StatusCode.BAD_REQUEST,
             )
 
-        headers: Dict[str, str] = {}
-        cookies: Set[Cookie] = set()
-
-        if hasattr(resource.function, Response.COOKIES_KEY):
-            cookies = getattr(resource.function, Response.COOKIES_KEY)
-        if hasattr(resource.function, Response.HEADERS_KEY):
-            cookies = getattr(resource.function, Response.HEADERS_KEY)
-
+        cookies: Set[Cookie] = getattr(resource.function, Response.COOKIES_KEY, set())
+        headers: Dict[str, str] = getattr(resource.function, Response.HEADERS_KEY, {})
         return content, headers, cookies
 
     def _content_to_response(
