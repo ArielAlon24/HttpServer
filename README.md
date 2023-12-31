@@ -106,7 +106,7 @@ def not_found() -> str:
     return "<h1> Oops not found... </h1>"
 ```
 
-This `not_found` function will occur only when the server encountered a NOT FOUND error. In a case where the `not_found` funciton fails, the server will search for an INTERNAL SERVER ERROR resource, if it fails, it will return a defualt error handling resource.
+This `not_found` function will occur only when the server encountered a `status_code.NOT_FOUND` error. In a case where the `not_found` funtion fails, the server will search for an `status_code.INTERNAL_SERVER_ERROR` resource, if it fails, it will return a defualt error handling resource.
 
 ## License
 This HttpServer library is open-source and available under the MIT License.
