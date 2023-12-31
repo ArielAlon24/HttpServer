@@ -1,5 +1,5 @@
 from http_server import Server
-from http_server.decorators import with_cookies
+from http_server.decorators import inject
 from http_server.models import Redirect, Cookie
 from http_server.enums import ContentType, StatusCode
 from http_server.utils import FileUtils
@@ -25,8 +25,16 @@ def index(payload: str, headers: Dict[str, str], cookies: Dict[str, Cookie]) -> 
     )
 
 
+@app.route(path="/both")
+@inject(cookies=True, headers=True)
+def both() -> str:
+    both.cookies.add(Cookie(name="test", value="123"))
+    both.headers["test"] = "123"
+    return "both"
+
+
 @app.route(path="/cookie")
-@with_cookies
+@inject(cookies=True)
 def set_cookie() -> str:
     set_cookie.cookies.add(Cookie(name="test", value="123"))
     return "done"

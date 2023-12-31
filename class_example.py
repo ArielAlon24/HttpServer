@@ -1,5 +1,5 @@
 from http_server import Server
-from http_server.decorators import with_cookies, with_headers
+from http_server.decorators import inject
 from http_server.models import Cookie
 from http_server.enums import ContentType
 from http_server.utils import FileUtils
@@ -42,12 +42,12 @@ class App:
             cookies=repr(cookies),
         )
 
-    @with_cookies
+    @inject(cookies=True)
     def set_cookie(self) -> str:
         self.set_cookie.cookies.add(Cookie(name="test", value="123"))
         return "done"
 
-    @with_headers
+    @inject(headers=True)
     def set_header(self) -> str:
         self.set_header.headers["test"] = "123"
         return "done"

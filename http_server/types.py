@@ -1,9 +1,9 @@
 from typing import Callable, TypeVar
 
-from .decorators import with_headers, with_cookies
+from .decorators import _InjectedFunction
 from .models.redirect import Redirect
 
 
 Content = str | bytes | None | Redirect
-Creator = Callable[..., Content] | with_headers | with_cookies
+Creator = Callable[..., Content] | _InjectedFunction
 CreatorType = TypeVar("CreatorType", bound=Creator)
