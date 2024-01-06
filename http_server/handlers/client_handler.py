@@ -2,7 +2,7 @@ from http_server.models.request import Request
 from .logging_handler import LoggingHandler
 from ..models import HttpError, Response, Resource, Route, Redirect, Cookie
 from ..enums.status_codes import StatusCode
-from ..utils.http import HttpParser
+from ..utils.http_parser import HttpParser
 from ..types import Content
 
 from typing import Tuple, Dict, Set, Any

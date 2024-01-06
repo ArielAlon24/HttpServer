@@ -37,17 +37,25 @@ class Request:
             full_path = self.path
         return f"{self.method.name} {full_path} {self.version}"
 
-    def __str__(self) -> str:
-        header = self.header() + self.CARRIAGE_RETURN
-        headers = self.CARRIAGE_RETURN.join(
-            [f"{key}: {value}" for key, value in (self.headers).items()]
-        )
-        cookies = self.CARRIAGE_RETURN.join(
-            f"{HeaderType.COOKIE.value}: {cookie}" for cookie in self.cookies.values()
+    def __repr__(self) -> str:
+        return (
+            f"Request({self.header()}, "
+            + f"Parameters: {self.parameters}, "
+            + f"Headers: {self.headers}, "
+            + f"Cookies: {self.cookies}, "
+            + f"Payload: {self.payload})"
         )
 
-        payload = ""
-        if self.payload:
-            payload = f"{self.CARRIAGE_RETURN * 2}{self.payload}"
+    def __eq__(self, other):
+        if not isinstance(other, Request):
+            return False
 
-        return f"{header}{headers}{cookies}{payload}"
+        return (
+            self.method == other.method
+            and self.version == other.version
+            and self.path == other.path
+            and self.parameters == other.parameters
+            and self.headers == other.headers
+            and self.cookies == other.cookies
+            and self.payload == other.payload
+        )

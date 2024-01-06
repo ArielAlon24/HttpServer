@@ -1,13 +1,11 @@
 from ..enums import ContentType, StatusCode
-from .redirect import Redirect
-
-from typing import Callable
+from ..types import Creator
 
 
 class Resource:
     def __init__(
         self,
-        function: Callable[..., str | bytes | None | Redirect],
+        function: Creator,
         content_type: ContentType,
         success_status: StatusCode,
     ) -> None:

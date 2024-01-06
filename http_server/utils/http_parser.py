@@ -67,9 +67,9 @@ class HttpParser:
         cls,
         lines: List[str],
     ) -> Tuple[Dict[str, str], Dict[str, Cookie], int]:
-        headers: Dict[str, str] = {}
+        headers = {}
         payload_start = 0
-
+        str_cookies = []
         for index, line in enumerate(lines[1:]):
             if not line:
                 payload_start = index + 1
@@ -78,90 +78,64 @@ class HttpParser:
             if len(key_value) != 2:
                 raise ValueError(f"Incorrect use of headers: {key_value}")
             key, value = line.split(": ")
-            headers[key] = value
+            if key == HeaderType.COOKIE.value:
+                str_cookies.append(value)
+            else:
+                headers[key] = value
 
-        cookies: Dict[str, Cookie] = {}
-        if HeaderType.COOKIE.value in headers:
-            cookies = cls._parse_cookies(headers[HeaderType.COOKIE.value])
-            headers.pop(HeaderType.COOKIE.value)
-
+        cookies = cls._parse_cookies(str_cookies)
         return headers, cookies, payload_start
 
     @classmethod
-    def _parse_cookies(cls, cookie_header: str) -> Dict[str, Cookie]:
+    def _parse_cookies(cls, str_cookies: List[str]) -> Dict[str, Cookie]:
         cookies = {}
-        for cookie_str in cookie_header.split("; "):
+        for cookie_str in str_cookies:
             parts = cookie_str.split(";")
             first_pair = parts[0].split("=")
             if len(first_pair) != 2:
                 raise ValueError(f"Could not parse Cookie: {cookie_str}")
             name, value = first_pair
             cookie_attrs = cls._parse_cookie_attributes(parts[1:])
-
-            max_age = None
-            if isinstance(
-                _value := cookie_attrs.get(CookieAttribute.MAX_AGE.value), int
-            ):
-                max_age = _value
-
-            expires = None
-            if isinstance(
-                _value := cookie_attrs.get(CookieAttribute.EXPIRES.value), datetime
-            ):
-                expires = _value
-
-            domain = None
-            if isinstance(
-                _value := cookie_attrs.get(CookieAttribute.DOMAIN.value), str
-            ):
-                domain = _value
-
-            path = "/"
-            if isinstance(_value := cookie_attrs.get(CookieAttribute.PATH.value), str):
-                path = _value
-
-            same_site = None
-            if (
-                str(_value := cookie_attrs.get(CookieAttribute.SAME_SITE.value))
-                in Cookie.SAME_SITE_OPTIONS
-            ):
-                same_site = str(_value)
-
-            cookies[name] = Cookie(
-                name=name,
-                value=value,
-                max_age=max_age,
-                expires=expires,
-                domain=domain,
-                path=path,
-                secure=CookieAttribute.SECURE.value in cookie_attrs,
-                http_only=CookieAttribute.HTTP_ONLY.value in cookie_attrs,
-                same_site=same_site,
-            )
+            cookies[name] = Cookie(name=name, value=value, **cookie_attrs)
 
         return cookies
 
     @classmethod
-    def _parse_cookie_attributes(
-        cls,
-        attr_list: List[str],
-    ) -> Dict[str, str | int | datetime]:
-        attrs: Dict[str, str | int | datetime] = {}
+    def _parse_cookie_attributes(cls, attr_list: List[str]) -> Dict:
+        attributes: Dict[str, str | datetime | bool] = {}
         for attr in attr_list:
             if "=" in attr:
                 key, value = attr.split("=")
-                key = key.strip()
+                key = key.strip().lower()
                 value = value.strip()
 
-                if key == CookieAttribute.MAX_AGE.value:
-                    attrs[key] = int(value)
-                elif key == CookieAttribute.EXPIRES.value:
-                    attrs[key] = DateUtils.from_rfc7321(value)
+                if key in [
+                    CookieAttribute.EXPIRES.value,
+                    CookieAttribute.MAX_AGE.value,
+                ]:
+                    attributes[CookieAttribute.EXPIRES.value] = DateUtils.from_rfc7321(
+                        value
+                    )
+                elif key == CookieAttribute.SAME_SITE.value:
+                    attributes[CookieAttribute.SAME_SITE.value] = value
+                elif key in [
+                    CookieAttribute.DOMAIN.value,
+                    CookieAttribute.PATH.value,
+                ]:
+                    attributes[key] = value
                 else:
-                    attrs[key] = value
+                    raise ValueError(
+                        f"Unrecognized key and value attibutes: {key}={value}"
+                    )
             else:
-                attrs[attr.strip()] = True
-        return attrs
+                attr = attr.strip().lower()
+                if attr == CookieAttribute.SECURE.value:
+                    attributes[CookieAttribute.SECURE.value] = True
+                elif attr == CookieAttribute.HTTP_ONLY.value:
+                    attributes[CookieAttribute.HTTP_ONLY.value] = True
+                else:
+                    raise ValueError(f"Unrecognized boolean attribute: {attr}.")
+        return attributes
 
     @classmethod
     def _parse_payload(cls, lines: List[str], payload_start: int) -> str | None:
