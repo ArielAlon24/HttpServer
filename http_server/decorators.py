@@ -1,5 +1,6 @@
 from typing import Callable, Set, Dict
 from .models.cookie import Cookie
+import inspect
 
 
 class _InjectedFunction:
@@ -14,6 +15,7 @@ class _InjectedFunction:
         if headers:
             self.headers: Dict[str, str] = {}
         self._instance = None
+        self.__signature__ = inspect.signature(function)
 
     def __get__(self, instance, _):
         self._instance = instance
@@ -27,6 +29,9 @@ class _InjectedFunction:
 
 def inject(cookies: bool = False, headers: bool = False):
     def decorator(function: Callable) -> _InjectedFunction:
-        return _InjectedFunction(function=function, cookies=cookies, headers=headers)
+        injected_function = _InjectedFunction(
+            function=function, cookies=cookies, headers=headers
+        )
+        return injected_function
 
     return decorator

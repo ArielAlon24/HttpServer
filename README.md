@@ -108,5 +108,13 @@ def not_found() -> str:
 
 This `not_found` function will occur only when the server encountered a `status_code.NOT_FOUND` error. In a case where the `not_found` funtion fails, the server will search for an `status_code.INTERNAL_SERVER_ERROR` resource, if it fails, it will return a defualt error handling resource.
 
+## Examples
+
+Check the examples folder to see various ways you can use the framework. To run an example, clone the repository and from the root use:
+```bash
+> python -m examples.<example-name>
+```
+This will run the example module as a script and give it access to the `http_server` library.
+
 ## License
 This HttpServer library is open-source and available under the MIT License.

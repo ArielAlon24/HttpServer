@@ -60,6 +60,19 @@ class Cookie:
             f"same_site='{self.same_site}')"
         )
 
+    def __hash__(self):
+        return hash(
+            (
+                self.name,
+                self.value,
+                self.domain,
+                self.path,
+                self.secure,
+                self.http_only,
+                self.same_site,
+            )
+        )
+
     def __eq__(self, other):
         if not isinstance(other, Cookie):
             return False

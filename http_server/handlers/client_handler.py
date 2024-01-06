@@ -7,6 +7,7 @@ from ..types import Content
 
 from typing import Tuple, Dict, Set, Any
 import socket
+import inspect
 
 logger = LoggingHandler.create_logger(__name__)
 
@@ -20,7 +21,7 @@ class ClientHandler:
         address: Tuple[str, int],
         routes: Dict[Route, Resource],
         error_routes: Dict[StatusCode, Resource],
-        timeout: float = 0.5,
+        timeout: float = 50,
     ) -> None:
         self.socket = socket
         self.address = address
@@ -100,7 +101,7 @@ class ClientHandler:
         except Exception as error:
             logger.warning(
                 f"Couldn't create response for {self.address}, "
-                + "trying to create error response."
+                + f"trying to create error response: {repr(error)}"
             )
             return self._generate_error_response(error=error)
         return response
@@ -116,11 +117,9 @@ class ClientHandler:
         if status not in self.error_routes.keys():
             return Response.from_error(status_code=status, error=error)
         resource = self.error_routes[status]
-        logger.debug(f"Found '{repr(status.value)}' error resource for {self.address}.")
+        logger.debug(f"Found '{status}' error resource for {self.address}.")
 
         try:
-            headers: Dict[str, str] = {}
-            cookies: Set[Cookie] = set()
             content, headers, cookies = self._execute_resource(resource)
             logger.debug(f"{self.address} {status} error content created.")
             response = self._content_to_response(
@@ -183,13 +182,18 @@ class ClientHandler:
         return resource
 
     def _load_kwargs(self, resource: Resource, request: Request) -> Dict[str, Any]:
+        parameters = set(inspect.signature(resource.function).parameters.keys())
+        if not set(request.parameters.keys()).issubset(parameters):
+            raise AttributeError("Route parameters do not match given parameters.")
+
         kwargs: Dict[str, Any] = request.parameters
-        function_arguments = resource.function.__annotations__
-        if Request.PAYLOAD_KEY in function_arguments:
+
+        function_parameters = inspect.signature(resource.function).parameters.keys()
+        if Request.PAYLOAD_KEY in function_parameters:
             kwargs[Request.PAYLOAD_KEY] = request.payload
-        if Request.HEADERS_KEY in function_arguments:
+        if Request.HEADERS_KEY in function_parameters:
             kwargs[Request.HEADERS_KEY] = request.headers
-        if Request.COOKIES_KEY in function_arguments:
+        if Request.COOKIES_KEY in function_parameters:
             kwargs[Request.COOKIES_KEY] = request.cookies
         return kwargs
 
@@ -199,9 +203,9 @@ class ClientHandler:
         kwargs = kwargs if kwargs else {}
         try:
             content = resource.function(**kwargs)
-        except TypeError as error:
+        except (TypeError, AttributeError) as error:
             raise HttpError(
-                message=f"Could not execute {self.address} request's resource.",
+                message=f"Could not execute {self.address} request's resource: {repr(error)}.",
                 status_code=StatusCode.BAD_REQUEST,
             )
 
@@ -216,34 +220,23 @@ class ClientHandler:
         headers: Dict[str, str],
         cookies: Set[Cookie],
     ) -> Response:
-        if content is None:
-            return Response(
-                status_code=resource.success_status,
-                content_type=resource.content_type,
-                headers=headers,
-                cookies=cookies,
-            )
+        if content is None or isinstance(content, bytes):
+            pass
         elif isinstance(content, Redirect):
             return Response.from_redirect(content)
         elif isinstance(content, str):
-            return Response(
-                status_code=resource.success_status,
-                content=content.encode(),
-                content_type=resource.content_type,
-                headers=headers,
-                cookies=cookies,
-            )
-        elif isinstance(content, bytes):
-            return Response(
-                status_code=resource.success_status,
-                content=content,
-                content_type=resource.content_type,
-                headers=headers,
-                cookies=cookies,
-            )
+            content = content.encode()
         else:
             raise HttpError(
                 message=f"{self.address} resource function does not "
                 + f"return {repr(str)}, {repr(bytes)} or {repr(None)}.",
                 status_code=StatusCode.INTERNAL_SERVER_ERROR,
             )
+
+        return Response(
+            status_code=resource.success_status,
+            content=content,
+            content_type=resource.content_type,
+            headers=headers,
+            cookies=cookies,
+        )
