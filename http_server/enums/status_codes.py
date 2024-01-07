@@ -9,6 +9,7 @@ class StatusCode(Enum):
     CREATED = (201, "Created")
     MOVED_PERMANENTLY = (301, "Moved Permanently")
     FOUND = (302, "Found")
+    FORBIDDEN = (402, "Forbidden")
 
     def __init__(self, code: int, message: str):
         self.code = code
