@@ -9,6 +9,7 @@ class _InjectedFunction:
     ) -> None:
         self.__name__ = function.__name__
         self.__annotations__ = function.__annotations__
+        self.__doc__ = function.__doc__
         self.function = function
         if cookies:
             self.cookies: Set[Cookie] = set()
