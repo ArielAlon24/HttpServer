@@ -1,7 +1,6 @@
-from http_server.models.request import Request
 from .logging_handler import LoggingHandler
-from ..models import HttpError, Response, Resource, Route, Redirect, Cookie
-from ..enums.status_codes import StatusCode
+from ..models import HttpError, Response, Resource, Route, Redirect, Cookie, Request
+from ..enums import StatusCode, HeaderType
 from ..utils.http_parser import HttpParser
 from ..types import Content
 
@@ -220,13 +219,15 @@ class ClientHandler:
         headers: Dict[str, str],
         cookies: Set[Cookie],
     ) -> Response:
-        if content is None or isinstance(content, bytes):
-            pass
-        elif isinstance(content, Redirect):
-            return Response.from_redirect(content)
+        status_code = resource.success_status
+        if isinstance(redirect := content, Redirect):
+            status_code = redirect.status_code
+            headers[HeaderType.LOCATION.value] = redirect.location
+            content = None
+
         elif isinstance(content, str):
             content = content.encode()
-        else:
+        elif content is not None and not isinstance(content, bytes):
             raise HttpError(
                 message=f"{self.address} resource function does not "
                 + f"return {repr(str)}, {repr(bytes)} or {repr(None)}.",
@@ -234,7 +235,7 @@ class ClientHandler:
             )
 
         return Response(
-            status_code=resource.success_status,
+            status_code=status_code,
             content=content,
             content_type=resource.content_type,
             headers=headers,

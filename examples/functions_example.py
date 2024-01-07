@@ -1,7 +1,8 @@
+from datetime import timedelta
 from http_server import Server
 from http_server.decorators import inject
-from http_server.models import Redirect, Cookie
-from http_server.enums import ContentType, StatusCode
+from http_server.models import Redirect, Cookie, CacheControl
+from http_server.enums import ContentType, StatusCode, HeaderType
 from http_server.utils import FileUtils
 
 from typing import Dict
@@ -70,6 +71,23 @@ def redirect() -> Redirect:
 @app.error(status=StatusCode.INTERNAL_SERVER_ERROR, content_type=ContentType.HTML)
 def intenal_server_error() -> None:
     test = a + 2
+
+
+@app.route(path="/head")
+@inject(headers=True)
+def head() -> str:
+    head.headers[HeaderType.CACHE_CONTROL.value] = str(
+        CacheControl(public=True, max_age=timedelta(days=1))
+    )
+
+    return "head"
+
+
+@app.route(path="/test", content_type=ContentType.HTML)
+def test() -> Redirect:
+    return Redirect(
+        location="/", status_code=StatusCode.MOVED_PERMANENTLY, content="test123"
+    )
 
 
 if __name__ == "__main__":

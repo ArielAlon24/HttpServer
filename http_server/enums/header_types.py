@@ -8,3 +8,4 @@ class HeaderType(Enum):
     DATE = "Date"
     COOKIE = "Cookie"
     SET_COOKIE = "Set-Cookie"
+    CACHE_CONTROL = "Cache-Control"

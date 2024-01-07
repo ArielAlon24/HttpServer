@@ -1,4 +1,4 @@
-from ..enums import Method, HeaderType
+from ..enums import Method
 from .cookie import Cookie
 
 from typing import Dict, Optional
